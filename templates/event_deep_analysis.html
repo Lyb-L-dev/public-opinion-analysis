@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>舆情分析智能系统 | 事件深度分析</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.0/apexcharts.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        :root {
+            /* 完全复用仪表盘的配色体系，确保视觉统一 */
+            --primary-color: #4A6CF7;
+            --primary-light: #6B8AFF;
+            --primary-dark: #3A5BD9;
+            --secondary-color: #6C757D;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #3B82F6;
+            --purple-color: #8B5CF6;
+            --pink-color: #EC4899;
+            --dark-bg: #FFFFFF;
+            --card-bg: #F8F9FA;
+            --light-bg: #FFFFFF;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+            --text-light: #495057;
+            --border-color: #DEE2E6;
+            --sidebar-width: 280px;
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--dark-bg);
+            color: var(--text-secondary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 复用侧边栏样式 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 2rem 1.5rem;
+            transition: var(--transition);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            margin-top: 3rem;
+            gap: 0.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        /* 复用主内容区样式 */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* 复用顶部栏样式 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+        }
+
+        .page-title h1 {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-title p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .search-box input {
+            padding: 0.5rem 1rem 0.5rem 2rem;
+            border-radius: 8px;
+            min-width: 250px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 6px 12px 6px 6px;
+            border-radius: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.15);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .user-profile .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-profile .user-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .user-profile .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-profile .dropdown-arrow {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-left: 4px;
+            transition: var(--transition);
+        }
+
+        .user-profile:hover .dropdown-arrow {
+            color: var(--primary-color);
+        }
+
+        /* 用户下拉菜单 */
+        #userDropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            min-width: 240px;
+            z-index: 9999;
+            overflow: hidden;
+            animation: dropdownIn 0.2s ease;
+        }
+
+        @keyframes dropdownIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header {
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, rgba(74, 108, 247, 0.08), rgba(139, 92, 246, 0.08));
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-header .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .dropdown-header .user-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .dropdown-section {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-section-title {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        #userDropdown a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        #userDropdown a:hover {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        #userDropdown a i {
+            color: var(--primary-color);
+            width: 18px;
+            text-align: center;
+        }
+
+        #userDropdown .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 0.5rem 0;
+        }
+
+        #userDropdown a.logout-btn {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn i {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn:hover {
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        /* 复用统计卡片样式 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.8rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--purple-color));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-light);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .stat-icon.primary {
+            background: rgba(74, 108, 247, 0.1);
+            color: var(--primary-color);
+        }
+
+        .stat-icon.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .stat-icon.info {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info-color);
+        }
+
+        .stat-icon.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .stat-value {
+            color: var(--text-primary);
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0.3rem 0 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 1rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: #E9ECEF;
+            border-radius: 4px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        .progress-fill.positive {
+            background: linear-gradient(90deg, var(--success-color), var(--info-color));
+        }
+
+        .progress-fill.info {
+            background: linear-gradient(90deg, var(--info-color), var(--primary-color));
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, var(--warning-color), var(--primary-color));
+        }
+
+        .progress-fill.neutral {
+            background: linear-gradient(90deg, var(--secondary-color), var(--purple-color));
+        }
+
+        /* 复用图表区域样式 */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .chart-card:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-header h3 {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .chart-btn:hover, .chart-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .chart-container {
+            height: 320px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 复用X轴标签样式，解决重叠 */
+        .apexcharts-xaxis {
+            margin-top: 15px !important;
+        }
+
+        .apexcharts-xaxis-label {
+            rotate: -90deg !important;
+            white-space: nowrap;
+            transformOrigin: center center !important;
+            font-size: 9px !important;
+            color: #6C757D !important;
+        }
+
+        /* 复用关键词云样式 */
+        .keywords-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .keyword-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            padding: 1rem 0;
+            justify-content: flex-start;
+        }
+
+        .keyword-tag {
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .keyword-tag:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(74, 108, 247, 0.2);
+        }
+
+        /* 复用空数据样式 */
+        .empty-data {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-data i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.6;
+            color: var(--text-secondary);
+        }
+
+        .empty-data h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .empty-data p {
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        .chart-empty {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 2rem;
+        }
+
+        .chart-empty i {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--primary-light);
+        }
+
+        /* 新增：评论明细列表样式（贴合现有风格） */
+        .comments-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .comments-list {
+            max-height: 400px;
+            overflow-y: auto;
+            gap: 1rem;
+            display: flex;
+            flex-direction: column;
+            padding-right: 0.5rem;
+        }
+
+        .comment-item {
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            transition: var(--transition);
+        }
+
+        .comment-item:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.05);
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.85rem;
+        }
+
+        .comment-username {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        .comment-time {
+            color: var(--text-secondary);
+        }
+
+        .comment-content {
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            line-height: 1.4;
+            margin-bottom: 0.75rem;
+        }
+
+        .comment-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .comment-like {
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .comment-sentiment {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .comment-sentiment.positive {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .comment-sentiment.neutral {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+
+        .comment-sentiment.negative {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* 新增：事件标题卡片样式 */
+        .event-header-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .event-header-card h2 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .event-meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .event-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .event-meta-item i {
+            color: var(--primary-color);
+            width: 16px;
+            text-align: center;
+        }
+
+        .event-meta-item .highlight {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* 响应式设计（复用+微调） */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem 1rem;
+            }
+
+            .search-box input {
+                min-width: 200px;
+            }
+
+            .page-title h1 {
+                font-size: 1.5rem;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+
+            #userDropdown {
+                right: -20px;
+                top: 50px;
+            }
+
+            .event-meta-row {
+                gap: 1rem;
+            }
+        }
+
+        /* 复用动画 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏（完全复用仪表盘，保持导航一致） -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('dashboard.dashboard', _external=False) }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <span>舆情分析</span>
+            </a>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i><span>首页</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('visualization.index') }}" class="nav-link">
+                    <i class="fas fa-map-location-dot"></i><span>舆情可视化</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.hot_event_list') }}" class="nav-link active">
+                    <i class="fas fa-fire"></i><span>热点事件</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('keywords.index') }}" class="nav-link">
+                    <i class="fas fa-tags"></i><span>关键词分析</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('enhanced_visualization.ml_dashboard') }}" class="nav-link">
+                    <i class="fas fa-brain"></i><span>智能分析</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('auth.profile_info') }}" class="nav-link">
+                    <i class="fas fa-user"></i><span>个人中心</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- 主内容区（深度分析核心内容） -->
+    <main class="main-content">
+        <!-- 顶部栏（复用仪表盘，保持样式一致） -->
+        <div class="topbar">
+            <div class="page-title">
+                <h1>事件深度分析</h1>
+                <p>单个热点事件全维度数据解析与可视化</p>
+            </div>
+
+            <div class="user-menu">
+                <div class="user-profile" onclick="toggleUserMenu()">
+                    <div class="avatar">
+                        {{ username[:1] if username and username.strip() else 'U' }}
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ username if username and username.strip() else '匿名用户' }}</span>
+                        <span class="user-role">{{ '管理员' if session.role == 'admin' else '普通用户' }}</span>
+                    </div>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </div>
+
+                <div id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="user-name">{{ username if username and username.strip() else '匿名用户' }}</div>
+                        <div class="user-email">已登录</div>
+                    </div>
+                    <div class="dropdown-section">
+                        <div class="dropdown-section-title">快捷操作</div>
+                        <a href="{{ url_for('auth.profile_info') }}"><i class="fas fa-user"></i><span>个人中心</span></a>
+                        <a href="{{ url_for('auth.profile_favorites') }}"><i class="fas fa-star"></i><span>我的收藏</span></a>
+                        <a href="{{ url_for('csv_export.index') }}"><i class="fas fa-file-export"></i><span>数据导出</span></a>
+                        {% if session.role == 'admin' %}
+                        <a href="{{ url_for('auth.settings') }}"><i class="fas fa-cog"></i><span>系统设置</span></a>
+                        {% endif %}
+                    </div>
+                    <div class="divider"></div>
+                    <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>退出登录</span></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第一步：事件基础信息卡片（展示事件核心元数据） -->
+        <div class="event-header-card fade-in">
+            <h2>{{ event.title if event else '未知事件' }}</h2>
+            <div class="event-meta-row">
+                <div class="event-meta-item">
+                    <i class="fas fa-clock"></i>
+                    <span>抓取时间：<span class="highlight">{{ event.crawl_time if (event and event.crawl_time) else '未知' }}</span></span>
+                </div>
+                <div class="event-meta-item">
+                    <i class="fas fa-fire"></i>
+                    <span>事件热度：<span class="highlight">{{ event.heat if (event and event.heat) else 0 }}</span></span>
+                </div>
+                <div class="event-meta-item">
+                    <i class="fas fa-smile"></i>
+                    <span>整体情感分：<span class="highlight">{{ "%.3f"|format(event.sentiment_score) if (event and event.sentiment_score) else 0.500 }}</span></span>
+                </div>
+                <div class="event-meta-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>风险等级：<span class="highlight">{{ event.risk_level if (event and event.risk_level) else '低' }}</span></span>
+                </div>
+                <div class="event-meta-item">
+                    <i class="fas fa-comments"></i>
+                    <span>评论总数：<span class="highlight">{{ stats.total_comments if (stats and stats.total_comments) else 0 }}</span></span>
+                </div>
+                <div class="event-meta-item">
+                    <i class="fas fa-thumbs-up"></i>
+                    <span>总点赞数：<span class="highlight">{{ stats.total_likes if (stats and stats.total_likes) else 0 }}</span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第二步：事件核心统计卡片（复用仪表盘样式，展示细化数据） -->
+        <div class="stats-grid">
+            <div class="stat-card fade-in" style="animation-delay: 0.1s">
+                <div class="stat-header">
+                    <div class="stat-icon success">
+                        <i class="fas fa-smile-beam"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ stats.positive_count if (stats and stats.positive_count) else 0 }}</div>
+                <div class="stat-label">正面评论数</div>
+                <div class="progress-bar">
+                    <div class="progress-fill positive" style="width: {{ stats.positive_pct if (stats and stats.positive_pct is not none) else 0 }}%"></div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: right;">
+                    占比 {{ "%.1f"|format(stats.positive_pct) if (stats and stats.positive_pct is not none) else 0 }}%
+                </div>
+            </div>
+
+            <div class="stat-card fade-in" style="animation-delay: 0.2s">
+                <div class="stat-header">
+                    <div class="stat-icon warning">
+                        <i class="fas fa-meh"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ stats.neutral_count if (stats and stats.neutral_count) else 0 }}</div>
+                <div class="stat-label">中性评论数</div>
+                <div class="progress-bar">
+                    <div class="progress-fill warning" style="width: {{ stats.neutral_pct if (stats and stats.neutral_pct is not none) else 0 }}%"></div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: right;">
+                    占比 {{ "%.1f"|format(stats.neutral_pct) if (stats and stats.neutral_pct is not none) else 0 }}%
+                </div>
+            </div>
+
+            <div class="stat-card fade-in" style="animation-delay: 0.3s">
+                <div class="stat-header">
+                    <div class="stat-icon danger">
+                        <i class="fas fa-frown"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ stats.negative_count if (stats and stats.negative_count) else 0 }}</div>
+                <div class="stat-label">负面评论数</div>
+                <div class="progress-bar">
+                    <div class="progress-fill neutral" style="width: {{ stats.negative_pct if (stats and stats.negative_pct is not none) else 0 }}%"></div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: right;">
+                    占比 {{ "%.1f"|format(stats.negative_pct) if (stats and stats.negative_pct is not none) else 0 }}%
+                </div>
+            </div>
+
+            <div class="stat-card fade-in" style="animation-delay: 0.4s">
+                <div class="stat-header">
+                    <div class="stat-icon info">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="stat-value">{{ "%.3f"|format(stats.avg_comment_sentiment) if (stats and stats.avg_comment_sentiment) else 0.500 }}</div>
+                <div class="stat-label">评论平均情感分</div>
+                <div class="progress-bar">
+                    <div class="progress-fill info" style="width: {{ (stats.avg_comment_sentiment * 100) if (stats and stats.avg_comment_sentiment) else 50 }}%"></div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: right;">
+                    趋势 {{ "上升" if stats.sentiment_trend == 'up' else "下降" if stats.sentiment_trend == 'down' else "平稳" }}
+                </div>
+            </div>
+        </div>
+
+        <!-- 智能洞察分析 -->
+        {% if insights %}
+        <div class="chart-card fade-in" style="margin-bottom: 2rem;">
+            <div class="chart-header">
+                <h3>智能洞察</h3>
+                <span style="padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: white;
+                    background: {% if insights.risk_assessment.level == '高' %}#EF4444{% elif insights.risk_assessment.level == '中' %}#F59E0B{% else %}#10B981{% endif %};">
+                    风险等级: {{ insights.risk_assessment.level }}
+                </span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 0.5rem 0;">
+                <div>
+                    <h5 style="color: var(--text-primary); margin-bottom: 0.75rem; font-size: 0.95rem;">
+                        <i class="fas fa-lightbulb" style="color: #F59E0B; margin-right: 0.5rem;"></i>关键发现
+                    </h5>
+                    <ul style="list-style: none; padding: 0; margin: 0;">
+                        {% for finding in insights.key_findings %}
+                        <li style="padding: 0.4rem 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5;">
+                            <i class="fas fa-circle" style="font-size: 0.35rem; color: var(--primary-color); margin-right: 0.5rem; vertical-align: middle;"></i>
+                            {{ finding }}
+                        </li>
+                        {% endfor %}
+                        {% if not insights.key_findings %}
+                        <li style="padding: 0.4rem 0; color: var(--text-secondary); font-size: 0.85rem;">暂无关键发现</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div>
+                    <h5 style="color: var(--text-primary); margin-bottom: 0.75rem; font-size: 0.95rem;">
+                        <i class="fas fa-shield-alt" style="color: var(--primary-color); margin-right: 0.5rem;"></i>风险评估
+                    </h5>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+                        <p style="margin-bottom: 0.5rem;"><strong>趋势方向：</strong>
+                            <span style="color: {% if insights.trend_direction == '上升' %}#10B981{% elif insights.trend_direction == '下降' %}#EF4444{% else %}#F59E0B{% endif %};">
+                                {{ insights.trend_direction }}
+                            </span>
+                        </p>
+                        <p style="margin-bottom: 0.5rem;">{{ insights.trend_reasoning }}</p>
+                        {% if insights.risk_assessment.reasoning %}
+                        <ul style="padding-left: 1rem; margin: 0.25rem 0 0 0;">
+                            {% for reason in insights.risk_assessment.reasoning %}
+                            <li style="padding: 0.2rem 0; font-size: 0.8rem;">{{ reason }}</li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% if ml_insights %}
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 0.5rem;">
+                <h5 style="color: var(--text-primary); margin-bottom: 0.6rem; font-size: 0.9rem;">
+                    <i class="fas fa-brain" style="color: #8B5CF6; margin-right: 0.5rem;"></i>ML模型分析
+                </h5>
+                <div style="display: flex; gap: 2.5rem; font-size: 0.82rem; color: var(--text-secondary); flex-wrap: wrap;">
+                    <span>异常状态: <strong style="color: {% if ml_insights.is_anomaly %}#EF4444{% else %}#10B981{% endif %};">{{ '是' if ml_insights.is_anomaly else '否' }}</strong></span>
+                    {% if ml_insights.anomaly_severity %}
+                    <span>异常严重度: <strong>{{ ml_insights.anomaly_severity }}</strong></span>
+                    {% endif %}
+                    {% if ml_insights.influence_score %}
+                    <span>影响力评分: <strong>{{ ml_insights.influence_score }}</strong></span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+<!-- ================= 相关文章列表 ================= -->
+<div class="comments-container fade-in">
+    <div class="chart-header">
+        <h3>相关文章 ({{ articles|length if articles else 0 }}篇)</h3>
+        <div class="chart-actions" style="gap: 0.25rem;">
+            <span style="font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; background: rgba(16,185,129,0.1); color: #10B981;">
+                正面: {{ article_pos }}
+            </span>
+            <span style="font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.1); color: #F59E0B;">
+                中性: {{ article_neu }}
+            </span>
+            <span style="font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; background: rgba(239,68,68,0.1); color: #EF4444;">
+                负面: {{ article_neg }}
+            </span>
+        </div>
+    </div>
+
+    <div class="comments-list" style="max-height: 500px;">
+        {% if articles and articles|length > 0 %}
+            {% for article in articles %}
+            <div class="comment-item fade-in" style="animation-delay: {{ 0.1 + loop.index0 * 0.05 }}s">
+                <div class="comment-header">
+                    <span class="comment-username">{{ article.author if article.author else '匿名作者' }}</span>
+                    <span class="comment-time">{{ article.publish_time.strftime('%Y-%m-%d %H:%M') if article.publish_time else '未知时间' }}</span>
+                </div>
+                <div class="comment-content" style="max-height: 120px; overflow-y: auto;">
+                    {{ article.content[:300] if article.content else '无文章内容' }}{% if article.content and article.content|length > 300 %}...{% endif %}
+                </div>
+                <div class="comment-footer">
+                    <div class="comment-like">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span>{{ article.like_count or 0 }}</span>
+                    </div>
+                    <div class="comment-like">
+                        <i class="fas fa-comment"></i>
+                        <span>{{ article.comment_count or 0 }}</span>
+                    </div>
+                    <div class="comment-like">
+                        <i class="fas fa-share-alt"></i>
+                        <span>{{ article.repost_count or 0 }}</span>
+                    </div>
+                    <span class="comment-sentiment {{ 'positive' if article.sentiment_type == '正面' else 'negative' if article.sentiment_type == '负面' else 'neutral' }}">
+                        {{ article.sentiment_type if article.sentiment_type else '中性' }} ({{ "%.3f"|format(article.sentiment_score) }})
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-data" style="width: 100%; padding: 2rem 1rem;">
+                <i class="fas fa-newspaper"></i>
+                <p>暂无该事件的相关文章</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+        <!-- 第三步：核心图表区域（情感趋势+情感分布+时间分布） -->
+        <div class="dashboard-grid">
+            <!-- 情感趋势图（按评论发布时间维度） -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>评论情感趋势变化</h3>
+                    <div class="chart-actions">
+                        <button class="chart-btn active" onclick="changeChartRange('hour', this)">按小时</button>
+                        <button class="chart-btn" onclick="changeChartRange('day', this)">按日期</button>
+                    </div>
+                </div>
+                <div class="chart-container" id="sentimentTrendChart">
+                    {% if not stats or not stats.sentiment_trend_data or stats.sentiment_trend_data|length == 0 %}
+                    <div class="chart-empty">
+                        <i class="fas fa-chart-line"></i>
+                        <p>暂无评论情感趋势数据</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 情感分布饼图 -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3>评论情感分布详情</h3>
+                </div>
+                <div class="chart-container" id="sentimentDistChart">
+                    {% if not stats or not stats.sentiment_dist_data or stats.sentiment_dist_data|length == 0 %}
+                    <div class="chart-empty">
+                        <i class="fas fa-chart-pie"></i>
+                        <p>暂无评论情感分布数据</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 评论时间分布柱状图 -->
+        <div class="chart-card fade-in" style="margin-bottom: 2rem;">
+            <div class="chart-header">
+                <h3>评论发布时间分布</h3>
+            </div>
+            <div class="chart-container" id="commentTimeChart">
+                {% if not stats or not stats.comment_time_data or stats.comment_time_data|length == 0 %}
+                <div class="chart-empty">
+                    <i class="fas fa-chart-bar"></i>
+                    <p>暂无评论时间分布数据</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 第四步：评论热点关键词云 -->
+        <div class="keywords-container fade-in">
+            <div class="chart-header">
+                <h3>评论热点关键词</h3>
+                <div class="chart-actions">
+                    <button class="chart-btn" onclick="refreshKeywords()" id="refreshKwBtn">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="keywordCloudContainer" style="text-align: center; padding: 1rem;">
+                {% if wordcloud_base64 %}
+                    <img src="data:image/png;base64,{{ wordcloud_base64 }}"
+                         alt="关键词词云" style="max-width: 100%; height: auto; border-radius: 8px;">
+                {% elif hot_words and hot_words|length > 0 %}
+                    <div class="keyword-cloud">
+                        {% for word, weight in hot_words[:30] %}
+                        <span class="keyword-tag" style="font-size: {{ [0.8 + (weight * 0.8), 1.8] | min }}rem;">
+                            {{ word }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-data" style="width: 100%; padding: 2rem 1rem;">
+                        <i class="fas fa-tags"></i>
+                        <p>暂无关键词数据（无评论内容可统计）</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 第五步：评论明细列表（新增核心模块，展示真实评论数据） -->
+        <div class="comments-container fade-in">
+            <div class="chart-header">
+                <h3>评论明细列表</h3>
+                <div class="chart-actions">
+                    <button class="chart-btn" onclick="filterComments('all', this)">全部</button>
+                    <button class="chart-btn" onclick="filterComments('positive', this)">正面</button>
+                    <button class="chart-btn" onclick="filterComments('negative', this)">负面</button>
+                </div>
+            </div>
+
+            <div class="comments-list" id="commentsList">
+                {% if comments and comments|length > 0 %}
+                    {% for comment in comments %}
+                    <div class="comment-item fade-in" data-sentiment="{{ 'positive' if comment.sentiment_type == '正面' else 'negative' if comment.sentiment_type == '负面' else 'neutral' }}" style="animation-delay: {{ 0.1 + loop.index0 * 0.05 }}s">
+                        <div class="comment-header">
+                            <span class="comment-username">{{ comment.username if comment.username else '匿名用户' }}</span>
+                            <span class="comment-time">{{ comment.publish_time.strftime('%Y-%m-%d %H:%M') if (comment and comment.publish_time) else '未知时间' }}</span>
+                        </div>
+                        <div class="comment-content">{{ comment.content if comment.content else '无评论内容' }}</div>
+                        <div class="comment-footer">
+                            <div class="comment-like">
+                                <i class="fas fa-thumbs-up"></i>
+                                <span>{{ comment.like_count if comment.like_count else 0 }}</span>
+                            </div>
+                            <span class="comment-sentiment {{ 'positive' if comment.sentiment_type == '正面' else 'negative' if comment.sentiment_type == '负面' else 'neutral' }}">
+                                {{ comment.sentiment_type if comment.sentiment_type else '中性' }} ({{ "%.3f"|format(comment.sentiment_score) }})
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-data" style="width: 100%; padding: 2rem 1rem;">
+                        <i class="fas fa-comments"></i>
+                        <p>暂无该事件的评论数据</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- 评论分页控件 -->
+            {% if pagination and pagination.total_pages > 1 %}
+            <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <button class="chart-btn" onclick="goToPage({{ pagination.page - 1 }})" {% if pagination.page <= 1 %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                    <i class="fas fa-chevron-left"></i> 上一页
+                </button>
+                <span style="font-size: 0.9rem; color: var(--text-secondary);">
+                    第 {{ pagination.page }} / {{ pagination.total_pages }} 页 (共 {{ pagination.total_comments }} 条)
+                </span>
+                <button class="chart-btn" onclick="goToPage({{ pagination.page + 1 }})" {% if pagination.page >= pagination.total_pages %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                    下一页 <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 全局图表实例
+        let sentimentTrendChartInstance = null;
+        let sentimentDistChartInstance = null;
+        let commentTimeChartInstance = null;
+
+        // 全局真实数据
+        const REAL_DATA = {
+            sentimentTrend: {{ stats.sentiment_trend_data|tojson if (stats and stats.sentiment_trend_data) else []|tojson }},
+            sentimentDist: {{ stats.sentiment_dist_data|tojson if (stats and stats.sentiment_dist_data) else [0, 0, 0]|tojson }},
+            commentTime: {{ stats.comment_time_data|tojson if (stats and stats.comment_time_data) else []|tojson }},
+            trendLabels: {{ stats.sentiment_trend_labels|tojson if (stats and stats.sentiment_trend_labels) else []|tojson }},
+            timeLabels: {{ stats.comment_time_labels|tojson if (stats and stats.comment_time_labels) else []|tojson }},
+            avgSentiment: {{ stats.avg_comment_sentiment|tojson if (stats and stats.avg_comment_sentiment) else 0.5|tojson }},
+            trendDirection: {{ stats.sentiment_trend|tojson if (stats and stats.sentiment_trend) else 'stable'|tojson }}
+        };
+
+        // 1. 初始化评论情感趋势图表
+        function initSentimentTrendChart() {
+            if (REAL_DATA.sentimentTrend.length === 0) return null;
+
+            const options = {
+                series: [{
+                    name: '评论平均情感分',
+                    data: REAL_DATA.sentimentTrend,
+                    fill: {
+                        type: 'gradient',
+                        gradient: {
+                            shade: 'light',
+                            shadeIntensity: 0.2,
+                            opacityFrom: 0.5,
+                            opacityTo: 0.1,
+                            stops: [0, 100]
+                        }
+                    }
+                }],
+                chart: {
+                    height: '100%',
+                    type: 'area',
+                    background: 'transparent',
+                    toolbar: { show: false },
+                    margin: { bottom: 40, left: 20, right: 20 }
+                },
+                colors: ['#4A6CF7'],
+                dataLabels: { enabled: false },
+                stroke: { curve: 'smooth', width: 3, color: '#3A5BD9' },
+                xaxis: {
+                    categories: REAL_DATA.trendLabels,
+                    show: true,
+                    tickAmount: 'auto',
+                    maxTicks: 15,
+                    labels: {
+                        style: { colors: '#6C757D', fontSize: '9px' },
+                        rotate: -90,
+                        rotateAlways: true,
+                        offsetY: 5,
+                        trim: false
+                    },
+                    axisBorder: { color: '#DEE2E6', show: true },
+                    tickColor: '#DEE2E6',
+                    crosshairs: { show: false }
+                },
+                yaxis: {
+                    min: 0,
+                    max: 1,
+                    labels: { style: { colors: '#6C757D', fontSize: '10px' } },
+                    axisBorder: { color: '#DEE2E6' },
+                    tickAmount: 5
+                },
+                grid: {
+                    borderColor: '#DEE2E6',
+                    strokeDashArray: 4,
+                    show: true,
+                    xaxis: { lines: { show: true } },
+                    yaxis: { lines: { show: true } }
+                },
+                tooltip: {
+                    theme: 'light',
+                    x: { format: 'MM-DD HH:mm', show: true },
+                    y: { formatter: (val) => `情感分: ${val.toFixed(3)}` },
+                    marker: { show: true, color: '#4A6CF7', size: 6 }
+                },
+                legend: { show: false }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#sentimentTrendChart"), options);
+            chart.render();
+            return chart;
+        }
+
+        // 2. 初始化评论情感分布图表（优化版）
+        function initSentimentDistChart() {
+            if (REAL_DATA.sentimentDist.length === 0) return;
+
+            const totalCount = REAL_DATA.sentimentDist.reduce((a,b)=>a+b, 0) || 1;
+            const trendIcon = REAL_DATA.trendDirection === 'up' ? ' ▲'
+                            : REAL_DATA.trendDirection === 'down' ? ' ▼'
+                            : '';
+
+            const options = {
+                series: REAL_DATA.sentimentDist,
+                chart: {
+                    type: 'donut',
+                    height: '100%',
+                    background: 'transparent',
+                    margin: { top: 10, bottom: 10 },
+                    animations: { enabled: true, easing: 'easeinout', speed: 800 }
+                },
+                colors: ['#059669', '#D97706', '#DC2626'],
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'light',
+                        type: 'vertical',
+                        shadeIntensity: 0.25,
+                        gradientToColors: ['#10B981', '#F59E0B', '#EF4444'],
+                        opacityFrom: 1,
+                        opacityTo: 0.85,
+                        stops: [0, 100]
+                    }
+                },
+                stroke: {
+                    width: 4,
+                    colors: ['#FFFFFF']
+                },
+                labels: ['正面', '中性', '负面'],
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        colors: '#6C757D',
+                        fontSize: '12px',
+                        padding: 15,
+                        formatter: (label, seriesIndex) => {
+                            const pct = ((REAL_DATA.sentimentDist[seriesIndex] / totalCount) * 100).toFixed(1);
+                            return `${label}: ${REAL_DATA.sentimentDist[seriesIndex]} (${pct}%)`;
+                        }
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    style: {
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        colors: ['#FFFFFF', '#FFFFFF', '#FFFFFF']
+                    },
+                    formatter: (val) => ((val / totalCount) * 100).toFixed(1) + '%',
+                    dropShadow: { enabled: true, top: 1, left: 1, blur: 2, opacity: 0.3 },
+                    offsetY: 0
+                },
+                plotOptions: {
+                    pie: {
+                        expandOnClick: true,
+                        customScale: 1.02,
+                        donut: {
+                            size: '65%',
+                            labels: {
+                                show: true,
+                                name: {
+                                    show: true,
+                                    label: '平均情感分',
+                                    color: '#6C757D',
+                                    fontSize: '20px',
+                                    fontWeight: 600,
+                                    formatter: () => REAL_DATA.avgSentiment.toFixed(3) + trendIcon
+                                },
+                                total: {
+                                    show: true,
+                                    label: '条评论',
+                                    color: '#212529',
+                                    fontSize: '28px',
+                                    fontWeight: 700,
+                                    formatter: () => totalCount
+                                }
+                            }
+                        }
+                    }
+                },
+                tooltip: {
+                    theme: 'light',
+                    y: {
+                        formatter: (val, { seriesIndex }) => {
+                            const pct = ((val / totalCount) * 100).toFixed(1);
+                            const labels = ['正面', '中性', '负面'];
+                            return `${labels[seriesIndex]}: ${val} 条 (${pct}%)`;
+                        }
+                    },
+                    marker: { show: true, size: 8 }
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#sentimentDistChart"), options);
+            chart.render();
+            return chart;
+        }
+
+        // 3. 初始化评论时间分布图表
+        function initCommentTimeChart() {
+            if (REAL_DATA.commentTime.length === 0) return;
+
+            const options = {
+                series: [{
+                    name: '评论数量',
+                    data: REAL_DATA.commentTime,
+                    color: '#4A6CF7'
+                }],
+                chart: {
+                    height: '100%',
+                    type: 'bar',
+                    background: 'transparent',
+                    toolbar: { show: false },
+                    margin: { bottom: 40, left: 20, right: 20 }
+                },
+                dataLabels: { enabled: false },
+                xaxis: {
+                    categories: REAL_DATA.timeLabels,
+                    show: true,
+                    tickAmount: 'auto',
+                    maxTicks: 15,
+                    labels: {
+                        style: { colors: '#6C757D', fontSize: '9px' },
+                        rotate: -90,
+                        rotateAlways: true,
+                        offsetY: 5,
+                        trim: false
+                    },
+                    axisBorder: { color: '#DEE2E6', show: true },
+                    tickColor: '#DEE2E6'
+                },
+                yaxis: {
+                    min: 0,
+                    labels: { style: { colors: '#6C757D', fontSize: '10px' } },
+                    axisBorder: { color: '#DEE2E6' },
+                    tickAmount: 5
+                },
+                grid: {
+                    borderColor: '#DEE2E6',
+                    strokeDashArray: 4,
+                    show: true,
+                    xaxis: { lines: { show: true } },
+                    yaxis: { lines: { show: true } }
+                },
+                tooltip: {
+                    theme: 'light',
+                    x: { format: 'MM-DD HH:mm', show: true },
+                    y: { formatter: (val) => `${val} 条评论` },
+                    marker: { show: true, color: '#4A6CF7', size: 6 }
+                },
+                legend: { show: false },
+                plotOptions: {
+                    bar: {
+                        borderRadius: 4,
+                        columnWidth: '60%'
+                    }
+                }
+            };
+
+            const chart = new ApexCharts(document.querySelector("#commentTimeChart"), options);
+            chart.render();
+            return chart;
+        }
+
+        // 切换趋势图时间维度（按小时/按日期）
+        function changeChartRange(range, btnElement) {
+            const buttons = document.querySelectorAll('.chart-actions .chart-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            fetch(`/dashboard/event/deep_analysis/{{ event_id if event_id else 0 }}/get_trend?range=${range}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP错误，状态码：${res.status}`);
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        REAL_DATA.sentimentTrend = data.sentimentTrend;
+                        REAL_DATA.trendLabels = data.trendLabels;
+
+                        if (sentimentTrendChartInstance) {
+                            sentimentTrendChartInstance.destroy();
+                        }
+                        sentimentTrendChartInstance = initSentimentTrendChart();
+                    } else {
+                        alert('获取数据失败：' + (data.msg || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('切换时间范围失败：', error);
+                    alert('切换失败，请检查后端接口是否正常');
+                });
+        }
+
+        // 筛选评论（全部/正面/负面）
+        function filterComments(type, btnElement) {
+            const commentItems = document.querySelectorAll('.comment-item');
+            const buttons = document.querySelectorAll('.comments-container .chart-actions .chart-btn');
+
+            // 切换按钮激活状态
+            buttons.forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            // 筛选评论
+            commentItems.forEach(item => {
+                if (type === 'all') {
+                    item.style.display = 'block';
+                } else {
+                    const itemSentiment = item.getAttribute('data-sentiment');
+                    item.style.display = (itemSentiment === type) ? 'block' : 'none';
+                }
+            });
+        }
+
+        // 用户下拉菜单（复用仪表盘逻辑）
+        function toggleUserMenu() {
+            const menu = document.getElementById('userDropdown');
+            const isHidden = menu.style.display === 'none' || menu.style.display === '';
+
+            if (isHidden) {
+                menu.style.display = 'block';
+                document.addEventListener('click', function closeMenu(e) {
+                    const userProfile = document.querySelector('.user-profile');
+                    if (!userProfile.contains(e.target) && !menu.contains(e.target)) {
+                        menu.style.display = 'none';
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
+        // 刷新关键词（AJAX，不刷新整个页面）
+        function refreshKeywords() {
+            const btn = document.getElementById('refreshKwBtn');
+            if (!btn) return;
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            fetch(`/dashboard/event/deep_analysis/{{ event_id if event_id else 0 }}/refresh_keywords`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        const container = document.getElementById('keywordCloudContainer');
+                        if (data.wordcloud_base64) {
+                            container.innerHTML = `<img src="data:image/png;base64,${data.wordcloud_base64}"
+                                alt="关键词词云" style="max-width: 100%; height: auto; border-radius: 8px;">`;
+                        } else if (data.hot_words && data.hot_words.length > 0) {
+                            let html = '<div class="keyword-cloud">';
+                            data.hot_words.slice(0, 30).forEach(([word, weight]) => {
+                                const size = Math.min(0.8 + weight * 0.8, 1.8);
+                                html += `<span class="keyword-tag" style="font-size: ${size}rem;">${word}</span>`;
+                            });
+                            html += '</div>';
+                            container.innerHTML = html;
+                        } else {
+                            container.innerHTML = '<div class="empty-data"><i class="fas fa-tags"></i><p>暂无关键词数据</p></div>';
+                        }
+                    } else {
+                        console.error('刷新关键词失败:', data.msg);
+                    }
+                })
+                .catch(err => console.error('刷新关键词失败:', err))
+                .finally(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                });
+        }
+
+        // 评论分页跳转
+        function goToPage(page) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('page', page);
+            window.location.href = url.toString();
+        }
+
+        // 页面加载初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化所有图表
+            if (document.querySelector("#sentimentTrendChart") && REAL_DATA.sentimentTrend.length > 0) {
+                sentimentTrendChartInstance = initSentimentTrendChart();
+            }
+            if (document.querySelector("#sentimentDistChart") && REAL_DATA.sentimentDist.length > 0) {
+                sentimentDistChartInstance = initSentimentDistChart();
+            }
+            if (document.querySelector("#commentTimeChart") && REAL_DATA.commentTime.length > 0) {
+                commentTimeChartInstance = initCommentTimeChart();
+            }
+
+            // 搜索功能
+            const searchInput = document.querySelector('.search-box input');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const query = searchInput.value.trim();
+                        if (query) window.location.href = `/search?keyword=${encodeURIComponent(query)}`;
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,548 @@
+{% extends "profile_base.html" %}
+
+{% block title %}数据导出{% endblock %}
+
+{% block page_title %}数据导出{% endblock %}
+{% block page_subtitle %}导出热搜、评论、文章数据{% endblock %}
+
+{% block profile_content %}
+<div class="profile-content-wrapper fade-in-up">
+
+    <div class="row">
+        <!-- 导出表单 -->
+        <div class="col-md-5">
+            <div class="profile-card mb-4">
+                <div class="card-header-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-file-export" style="color: var(--primary-color);"></i>
+                        导出数据
+                    </h3>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-calendar"></i> 时间范围
+                    </label>
+                    <div class="d-flex gap-2">
+                        <input type="date" class="profile-form-control" id="startDate" value="">
+                        <input type="date" class="profile-form-control" id="endDate" value="">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-database"></i> 数据类型
+                    </label>
+                    <div class="data-type-options">
+                        <label class="data-type-radio">
+                            <input type="radio" name="dataType" value="hot_events">
+                            <span class="radio-custom"></span>
+                            热搜数据
+                        </label>
+                        <label class="data-type-radio">
+                            <input type="radio" name="dataType" value="comments">
+                            <span class="radio-custom"></span>
+                            评论数据
+                        </label>
+                        <label class="data-type-radio">
+                            <input type="radio" name="dataType" value="articles">
+                            <span class="radio-custom"></span>
+                            文章数据
+                        </label>
+                        <label class="data-type-radio">
+                            <input type="radio" name="dataType" value="all" checked>
+                            <span class="radio-custom"></span>
+                            全部数据
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 数据预览 -->
+                <div class="preview-stats" id="previewStats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-value" id="hotEventsCount">0</div>
+                        <div class="stat-label">热搜事件</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="commentsCount">0</div>
+                        <div class="stat-label">评论数据</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="articlesCount">0</div>
+                        <div class="stat-label">文章数据</div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="button" class="profile-btn profile-btn-outline flex-fill" id="btnPreview" onclick="previewData()">
+                        <i class="fas fa-search"></i> 预览数据
+                    </button>
+                    <button type="button" class="profile-btn profile-btn-primary flex-fill" id="btnExport" onclick="exportData()" disabled>
+                        <i class="fas fa-download"></i> 导出数据
+                    </button>
+                </div>
+            </div>
+
+            <!-- 使用说明 -->
+            <div class="profile-card">
+                <div class="card-header-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-info-circle" style="color: var(--info-color);"></i>
+                        使用说明
+                    </h3>
+                </div>
+                <ul style="color: var(--text-secondary); font-size: 0.9rem; padding-left: 1.2rem;">
+                    <li style="margin-bottom: 0.5rem;">选择开始和结束日期，点击「预览数据」查看可用数据量</li>
+                    <li style="margin-bottom: 0.5rem;">选择要导出的数据类型，点击「导出数据」生成文件</li>
+                    <li style="margin-bottom: 0.5rem;">导出完成后，可以在下方「已导出文件」列表中下载</li>
+                    <li style="margin-bottom: 0.5rem;">导出全部数据时，会生成一个ZIP压缩包</li>
+                    <li>CSV文件使用UTF-8编码，可直接在Excel中打开</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 文件列表 -->
+        <div class="col-md-7">
+            <div class="profile-card">
+                <div class="card-header-section">
+                    <h3 class="section-title">
+                        <i class="fas fa-folder-open" style="color: var(--warning-color);"></i>
+                        已导出文件
+                    </h3>
+                </div>
+
+                <div class="file-list" id="fileList">
+                    {% if files %}
+                        {% for file in files %}
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-icon {{ 'zip' if file.name.endswith('.zip') else 'csv' }}">
+                                    <i class="fas fa-{{ 'file-archive' if file.name.endswith('.zip') else 'file-csv' }}"></i>
+                                </div>
+                                <div class="file-details">
+                                    <div class="file-name">{{ file.name }}</div>
+                                    <div class="file-meta">
+                                        {{ file.created }} · {{ (file.size / 1024) | round(1) }} KB
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="profile-btn profile-btn-outline btn-sm" onclick="downloadFile('{{ file.name }}')">
+                                <i class="fas fa-download"></i> 下载
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <h4>暂无已导出的文件</h4>
+                            <p>选择时间范围和数据类型，开始导出数据</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-content-wrapper {
+    max-width: 1100px;
+}
+
+.card-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.form-label i {
+    color: var(--text-secondary);
+}
+
+/* 数据类型选项 */
+.data-type-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.data-type-radio {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.75rem 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.data-type-radio:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.data-type-radio input {
+    display: none;
+}
+
+.radio-custom {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    position: relative;
+    transition: var(--transition);
+    flex-shrink: 0;
+}
+
+.data-type-radio input:checked + .radio-custom {
+    border-color: var(--primary-color);
+}
+
+.data-type-radio input:checked + .radio-custom::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: var(--primary-color);
+    border-radius: 50%;
+}
+
+.data-type-radio input:checked ~ span:last-child {
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+/* 预览统计 */
+.preview-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(74, 108, 247, 0.05);
+    border-radius: 10px;
+}
+
+.stat-item {
+    text-align: center;
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* 文件列表 */
+.file-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    transition: var(--transition);
+}
+
+.file-item:hover {
+    border-color: var(--primary-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.file-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.file-icon.csv {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.file-icon.zip {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.file-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.file-name {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.file-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.profile-btn.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    font-size: 2rem;
+    color: var(--border-color);
+}
+
+.empty-state h4 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .data-type-options {
+        grid-template-columns: 1fr;
+    }
+    .preview-stats {
+        flex-wrap: wrap;
+    }
+    .stat-item {
+        min-width: 80px;
+    }
+}
+</style>
+
+<script>
+    // 页面加载时设置默认日期为最近7天
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date();
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
+        document.getElementById('endDate').value = formatDate(today);
+        document.getElementById('startDate').value = formatDate(weekAgo);
+    });
+
+    function formatDate(date) {
+        return date.toISOString().split('T')[0];
+    }
+
+    function previewData() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        if (!startDate || !endDate) {
+            showToast('请选择开始和结束日期', 'warning');
+            return;
+        }
+
+        const btnPreview = document.getElementById('btnPreview');
+        btnPreview.classList.add('loading');
+        btnPreview.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 预览中...';
+
+        fetch('/csv/preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                start_time: startDate,
+                end_time: endDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btnPreview.classList.remove('loading');
+            btnPreview.innerHTML = '<i class="fas fa-search"></i> 预览数据';
+
+            if (data.success) {
+                document.getElementById('previewStats').style.display = 'flex';
+                document.getElementById('hotEventsCount').textContent = data.data.hot_events_count;
+                document.getElementById('commentsCount').textContent = data.data.comments_count;
+                document.getElementById('articlesCount').textContent = data.data.articles_count;
+
+                const totalCount = data.data.total_count;
+                document.getElementById('btnExport').disabled = totalCount === 0;
+
+                if (totalCount === 0) {
+                    showToast('指定时间范围内没有数据', 'warning');
+                } else {
+                    showToast('预览成功，共 ' + totalCount + ' 条数据', 'success');
+                }
+            } else {
+                showToast('预览失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            btnPreview.classList.remove('loading');
+            btnPreview.innerHTML = '<i class="fas fa-search"></i> 预览数据';
+            showToast('预览失败: ' + error, 'error');
+        });
+    }
+
+    function exportData() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        const dataType = document.querySelector('input[name="dataType"]:checked').value;
+
+        if (!startDate || !endDate) {
+            showToast('请选择开始和结束日期', 'warning');
+            return;
+        }
+
+        const btnExport = document.getElementById('btnExport');
+        btnExport.classList.add('loading');
+        btnExport.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导出中...';
+
+        fetch('/csv/export', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                start_time: startDate,
+                end_time: endDate,
+                data_type: dataType
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btnExport.classList.remove('loading');
+            btnExport.innerHTML = '<i class="fas fa-download"></i> 导出数据';
+
+            if (data.success) {
+                showToast('导出成功！', 'success');
+                refreshFileList();
+            } else {
+                showToast('导出失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            btnExport.classList.remove('loading');
+            btnExport.innerHTML = '<i class="fas fa-download"></i> 导出数据';
+            showToast('导出失败: ' + error, 'error');
+        });
+    }
+
+    function downloadFile(filename) {
+        window.location.href = '/csv/download/' + encodeURIComponent(filename);
+    }
+
+    function refreshFileList() {
+        fetch('/csv/files')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const fileList = document.getElementById('fileList');
+                if (data.files.length === 0) {
+                    fileList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <h4>暂无已导出的文件</h4>
+                            <p>选择时间范围和数据类型，开始导出数据</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    data.files.forEach(file => {
+                        const iconClass = file.name.endsWith('.zip') ? 'zip' : 'csv';
+                        const iconType = file.name.endsWith('.zip') ? 'file-archive' : 'file-csv';
+                        html += `
+                            <div class="file-item">
+                                <div class="file-info">
+                                    <div class="file-icon ${iconClass}">
+                                        <i class="fas fa-${iconType}"></i>
+                                    </div>
+                                    <div class="file-details">
+                                        <div class="file-name">${file.name}</div>
+                                        <div class="file-meta">${file.created} · ${file.size_str}</div>
+                                    </div>
+                                </div>
+                                <button class="profile-btn profile-btn-outline btn-sm" onclick="downloadFile('${file.name}')">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
+                            </div>
+                        `;
+                    });
+                    fileList.innerHTML = html;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('刷新文件列表失败:', error);
+        });
+    }
+</script>
+{% endblock %}

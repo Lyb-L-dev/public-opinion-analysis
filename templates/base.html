@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>舆情分析智能系统 | {% block title %}仪表盘{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.0/apexcharts.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        /* 此处粘贴 dashboard.html 中的所有 <style> 内容，保持完全一致 */
+        :root {
+            /* 核心配色体系 */
+            --primary-color: #4A6CF7;
+            --primary-light: #6B8AFF;
+            --primary-dark: #3A5BD9;
+            --secondary-color: #6C757D;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #3B82F6;
+            --purple-color: #8B5CF6;
+            --pink-color: #EC4899;
+            --dark-bg: #FFFFFF;
+            --card-bg: #F8F9FA;
+            --light-bg: #FFFFFF;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+            --text-light: #495057;
+            --border-color: #DEE2E6;
+            --sidebar-width: 280px;
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--dark-bg);
+            color: var(--text-secondary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 侧边栏 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 2rem 1.5rem;
+            transition: var(--transition);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            margin-top: 3rem;
+            gap: 0.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* 顶部栏 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+        }
+
+        .page-title h1 {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-title p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* 顶部栏 - 现代风格 */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+        }
+
+        .page-title h1 {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-title p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+        }
+
+        /* 用户头像卡片 - 现代风格 */
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 6px 12px 6px 6px;
+            border-radius: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.15);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .user-profile .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-profile .user-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .user-profile .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-profile .dropdown-arrow {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-left: 4px;
+            transition: var(--transition);
+        }
+
+        .user-profile:hover .dropdown-arrow {
+            color: var(--primary-color);
+        }
+
+        /* 用户下拉菜单 - 现代风格 */
+        #userDropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            min-width: 240px;
+            z-index: 9999;
+            overflow: hidden;
+            animation: dropdownIn 0.2s ease;
+        }
+
+        @keyframes dropdownIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header {
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, rgba(74, 108, 247, 0.08), rgba(139, 92, 246, 0.08));
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-header .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .dropdown-header .user-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .dropdown-section {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-section-title {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        #userDropdown a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        #userDropdown a:hover {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        #userDropdown a i {
+            color: var(--primary-color);
+            width: 18px;
+            text-align: center;
+        }
+
+        #userDropdown .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 0.5rem 0;
+        }
+
+        #userDropdown a.logout-btn {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn i {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn:hover {
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        /* 表单卡片样式（新增，用于个人设置页面） */
+        .form-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .form-card h2 {
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--text-primary);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: white;
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem 1rem;
+            }
+            .form-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <span>舆情分析</span>
+            </a>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard.dashboard' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i><span>首页</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('visualization.index') }}" class="nav-link {% if request.endpoint == 'visualization.index' %}active{% endif %}">
+                    <i class="fas fa-map-location-dot"></i><span>舆情可视化</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.hot_event_list') }}" class="nav-link {% if request.endpoint == 'dashboard.hot_event_list' %}active{% endif %}">
+                    <i class="fas fa-fire"></i><span>热点事件</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('keywords.index') }}" class="nav-link {% if request.endpoint == 'keywords.index' %}active{% endif %}">
+                    <i class="fas fa-tags"></i><span>关键词分析</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('enhanced_visualization.ml_dashboard') }}" class="nav-link {% if request.endpoint == 'enhanced_visualization.ml_dashboard' %}active{% endif %}">
+                    <i class="fas fa-brain"></i><span>智能分析</span>
+                </a>
+            </li>
+            {% if session.get('role') == 'admin' %}
+            <li class="nav-item">
+                <a href="{{ url_for('auth.profile_info') }}" class="nav-link {% if request.endpoint == 'auth.settings' %}active{% endif %}">
+                    <i class="fas fa-user"></i><span>个人中心</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 顶部栏 -->
+        <div class="topbar">
+            <div class="page-title">
+                <h1>{% block page_title %}舆情分析仪表板{% endblock %}</h1>
+                <p>{% block page_subtitle %}{% endblock %}</p>
+            </div>
+
+            <div class="user-menu">
+                <div class="user-profile" onclick="toggleUserMenu()">
+                    <div class="avatar">
+                        {% if session.get('user_avatar') %}
+                            <img src="{{ url_for('static', filename=session.get('user_avatar')) }}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">
+                        {% else %}
+                            {{ session.get('username', 'U')[:1] }}
+                        {% endif %}
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name">{{ session.get('username', '匿名用户') }}</span>
+                        <span class="user-role">{{ '管理员' if session.get('role') == 'admin' else '普通用户' }}</span>
+                    </div>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </div>
+
+                <div id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="user-name">{{ session.get('username', '匿名用户') }}</div>
+                        <div class="user-email">已登录</div>
+                    </div>
+                    <div class="dropdown-section">
+                        <div class="dropdown-section-title">快捷操作</div>
+                        <a href="{{ url_for('auth.profile_info') }}"><i class="fas fa-user"></i><span>个人中心</span></a>
+                        <a href="{{ url_for('auth.profile_favorites') }}"><i class="fas fa-star"></i><span>我的收藏</span></a>
+                        {% if session.role == 'admin' %}
+                        <a href="{{ url_for('auth.settings') }}"><i class="fas fa-cog"></i><span>系统设置</span></a>
+                        {% endif %}
+                    </div>
+                    <div class="divider"></div>
+                    <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>退出登录</span></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页面内容区块 -->
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 用户下拉菜单
+        function toggleUserMenu() {
+            const menu = document.getElementById('userDropdown');
+            const isHidden = menu.style.display === 'none' || menu.style.display === '';
+
+            if (isHidden) {
+                menu.style.display = 'block';
+                document.addEventListener('click', function closeMenu(e) {
+                    const userProfile = document.querySelector('.user-profile');
+                    if (!userProfile.contains(e.target) && !menu.contains(e.target)) {
+                        menu.style.display = 'none';
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+
+        // 搜索功能（与dashboard保持一致）
+        const searchInput = document.querySelector('.search-box input');
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    if (query) window.location.href = `/search?keyword=${encodeURIComponent(query)}`;
+                }
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

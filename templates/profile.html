@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}个人中心{% endblock %}
+{% block page_title %}个人中心{% endblock %}
+{% block page_subtitle %}管理您的账户信息，查看收藏事件{% endblock %}
+
+{% block content %}
+<div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+    <!-- 左侧：个人信息与设置表单 -->
+    <div style="flex: 1 1 350px; min-width: 300px;">
+        <div class="form-card" style="margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem;">
+                <!-- 头像占位（后续可扩展为上传功能） -->
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color), var(--purple-color)); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                    {{ session.get('username')[:1] }}
+                </div>
+                <div>
+                    <h3 style="color: var(--text-primary); margin-bottom: 0.25rem;">{{ session.get('username') }}</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                        <span class="badge" style="background: {% if role == 'admin' %}var(--primary-color){% else %}var(--secondary-color){% endif %}; color: white; padding: 0.25rem 0.75rem; border-radius: 20px;">
+                            {{ '管理员' if role == 'admin' else '普通用户' }}
+                        </span>
+                    </p>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">注册于 {{ created_at }}</p>
+                </div>
+            </div>
+
+            <h3>修改密码</h3>
+            <form method="POST" action="{{ url_for('auth.profile') }}">
+                <!-- 原密码、新密码、确认密码字段保持不变 -->
+                <div class="form-group">
+                    <label for="old_password">当前密码</label>
+                    <input type="password" class="form-control" id="old_password" name="old_password" placeholder="输入当前密码">
+                </div>
+                <div class="form-group">
+                    <label for="new_password">新密码</label>
+                    <input type="password" class="form-control" id="new_password" name="new_password" placeholder="至少6位">
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">确认新密码</label>
+                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="再次输入新密码">
+                </div>
+
+                <hr>
+                <h3>修改安全问题</h3>
+                <div class="form-group">
+                    <label for="security_question">选择安全问题</label>
+                    <select class="form-control" id="security_question" name="security_question">
+                        {% for q in security_questions %}
+                        <option value="{{ q }}" {% if user_security_question == q %}selected{% endif %}>{{ q }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="security_answer">安全答案</label>
+                    <input type="text" class="form-control" id="security_answer" name="security_answer" placeholder="输入新的安全答案" value="{{ user_security_answer if user_security_answer else '' }}">
+                </div>
+                <div class="form-group">
+                    <label for="old_security_answer">当前安全答案（验证）</label>
+                    <input type="text" class="form-control" id="old_security_answer" name="old_security_answer" placeholder="输入当前安全答案以验证">
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%;">保存修改</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 右侧：我的收藏 -->
+    <div style="flex: 2 1 500px;">
+        <div class="form-card" style="padding: 1.5rem;">
+            <h3 style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-star" style="color: var(--warning-color);"></i> 我的收藏
+            </h3>
+
+            {% if favorites %}
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    {% for fav in favorites %}
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="flex: 1;">
+                            <a href="{{ url_for('dashboard.event_detail', event_id=fav.id) }}" style="color: var(--text-primary); font-weight: 500; text-decoration: none; font-size: 1.1rem;">
+                                {{ fav.title }}
+                            </a>
+                            <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-secondary);">
+                                <span><i class="fas fa-fire"></i> 热度 {{ fav.heat or 0 }}</span>
+                                <span><i class="fas fa-comment"></i> 评论 {{ fav.comment_count or 0 }}</span>
+                                <span><i class="fas fa-smile"></i> 情感 {{ "%.2f"|format(fav.sentiment_score) if fav.sentiment_score else 0.5 }}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">收藏于 {{ fav.favorited_time.strftime('%Y-%m-%d') if fav.favorited_time else '' }}</span>
+                            <!-- 取消收藏按钮（可选，直接在当前页操作） -->
+                            <button class="chart-btn" style="width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center;" onclick="unfavorite('{{ fav.id }}', this)">
+                                <i class="fas fa-trash-alt" style="color: var(--danger-color);"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-data" style="padding: 3rem 1rem;">
+                    <i class="fas fa-star" style="font-size: 3rem; opacity: 0.3;"></i>
+                    <h4 style="color: var(--text-primary);">暂无收藏事件</h4>
+                    <p style="color: var(--text-secondary);">在首页点击事件卡片的星星按钮即可收藏</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // 取消收藏功能（可选）
+    function unfavorite(eventId, btn) {
+        if (!confirm('确定取消收藏该事件吗？')) return;
+        fetch(`/favorite/toggle/${eventId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && !data.favorited) {
+                    // 移除该条目
+                    const card = btn.closest('div[style*="display: flex; align-items: center; justify-content: space-between;"]');
+                    if (card) card.remove();
+                    // 如果收藏列表为空，显示空状态
+                    const container = document.querySelector('.form-card > div');
+                    if (container && container.children.length === 0) {
+                        container.innerHTML = `<div class="empty-data" style="padding: 3rem 1rem;"><i class="fas fa-star" style="font-size: 3rem; opacity: 0.3;"></i><h4 style="color: var(--text-primary);">暂无收藏事件</h4><p style="color: var(--text-secondary);">在首页点击事件卡片的星星按钮即可收藏</p></div>`;
+                    }
+                } else {
+                    alert(data.message || '操作失败');
+                }
+            })
+            .catch(error => {
+                console.error('取消收藏失败:', error);
+                alert('网络错误，请稍后重试');
+            });
+    }
+</script>
+{% endblock %}

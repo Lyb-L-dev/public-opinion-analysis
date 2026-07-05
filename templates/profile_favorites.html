@@ -1,0 +1,602 @@
+{% extends "profile_base.html" %}
+
+{% block title %}我的收藏 - 舆情分析{% endblock %}
+
+{% block page_title %}收藏事件{% endblock %}
+{% block page_subtitle %}管理您收藏的舆情事件{% endblock %}
+
+{% block profile_content %}
+<div class="profile-content-wrapper fade-in-up">
+
+    <!-- 页面头部 -->
+    <div class="favorites-header">
+        <div class="header-left">
+            <h2 class="page-heading">
+                <i class="fas fa-star" style="color: var(--warning-color);"></i>
+                我的收藏
+            </h2>
+            <span class="favorites-count">共 {{ favorites|length if favorites else 0 }} 个收藏</span>
+        </div>
+        <div class="header-actions">
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all">
+                    全部 <span class="tab-count">{{ favorites|length if favorites else 0 }}</span>
+                </button>
+                <button class="filter-tab" data-filter="high_risk">
+                    高风险 <span class="tab-count">{{ high_risk_count|default(0) }}</span>
+                </button>
+                <button class="filter-tab" data-filter="recent">
+                    最近一周 <span class="tab-count">{{ recent_count|default(0) }}</span>
+                </button>
+            </div>
+            <div class="search-wrapper">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="搜索收藏事件..." id="searchInput">
+            </div>
+            <select class="sort-select" id="sortSelect" onchange="sortFavorites(this.value)">
+                <option value="date-desc">最新收藏</option>
+                <option value="date-asc">最早收藏</option>
+                <option value="heat-desc">热度最高</option>
+                <option value="heat-asc">热度最低</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 收藏列表 -->
+    <div class="favorites-list" id="favoritesList">
+        {% if favorites %}
+            {% for fav in favorites %}
+            <div class="favorite-card profile-card fade-in-up"
+                 style="animation-delay: {{ loop.index0 * 0.05 }}s"
+                 data-category="{{ fav.risk_level|default('normal') }}"
+                 data-date="{{ fav.favorited_time.strftime('%Y-%m-%d') }}"
+                 data-heat="{{ fav.heat|default(0) }}">
+
+                <!-- 卡片左侧信息 -->
+                <div class="card-main">
+                    <div class="card-header-row">
+                        <h3 class="favorite-title">{{ fav.title }}</h3>
+                        {% if fav.risk_level == 'high' %}
+                        <span class="risk-badge high">
+                            <i class="fas fa-exclamation-triangle"></i> 高风险
+                        </span>
+                        {% elif fav.risk_level == 'medium' %}
+                        <span class="risk-badge medium">
+                            <i class="fas fa-info-circle"></i> 中风险
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="meta-info">
+                        <span class="meta-item">
+                            <i class="fas fa-fire" style="color: #FF8200;"></i>
+                            {{ fav.heat|default(0) }}
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-comment" style="color: var(--primary-color);"></i>
+                            {{ fav.comment_count|default(0) }}
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            {{ fav.favorited_time.strftime('%Y-%m-%d %H:%M') }}
+                        </span>
+                    </div>
+
+                    <p class="summary">{{ fav.summary|default('暂无摘要内容') }}</p>
+
+                    <div class="card-tags">
+                        {% if fav.sentiment_type %}
+                        <span class="tag {{ 'positive' if fav.sentiment_type == '正面' else 'negative' if fav.sentiment_type == '负面' else 'neutral' }}">
+                            {{ fav.sentiment_type }}
+                        </span>
+                        {% endif %}
+                        <span class="tag">{{ fav.category|default('社会热点') }}</span>
+                    </div>
+                </div>
+
+                <!-- 卡片操作区 -->
+                <div class="card-actions">
+                    <button class="profile-btn profile-btn-outline btn-sm"
+                            onclick="viewDetail('{{ fav.id }}')">
+                        <i class="fas fa-eye"></i> 查看详情
+                    </button>
+                    <button class="profile-btn profile-btn-danger btn-sm"
+                            onclick="unfavorite('{{ fav.id }}', this)">
+                        <i class="fas fa-trash-alt"></i> 取消收藏
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <!-- 空状态 -->
+            <div class="empty-state-card profile-card">
+                <div class="empty-illustration">
+                    <div class="empty-icon">
+                        <i class="far fa-star"></i>
+                    </div>
+                </div>
+                <h4>暂无收藏事件</h4>
+                <p>您还没有收藏任何舆情事件<br>去发现页浏览感兴趣的内容吧</p>
+                <a href="{{ url_for('dashboard.dashboard') }}" class="profile-btn profile-btn-primary">
+                    <i class="fas fa-compass"></i> 去浏览舆情
+                </a>
+            </div>
+        {% endif %}
+
+        <!-- 无搜索结果状态 -->
+        <div class="no-results-state" id="noResultsState" style="display: none;">
+            <div class="empty-icon" style="background: rgba(245, 158, 11, 0.1);">
+                <i class="fas fa-search" style="color: var(--warning-color);"></i>
+            </div>
+            <h4>未找到匹配的收藏</h4>
+            <p>尝试调整筛选条件或搜索关键词</p>
+            <button class="profile-btn profile-btn-outline" onclick="clearFilters()">
+                <i class="fas fa-times"></i> 清除筛选
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-content-wrapper {
+    max-width: 900px;
+}
+
+/* 页面头部 */
+.favorites-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.page-heading {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.favorites-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    background: var(--card-bg);
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* 筛选标签 */
+.filter-tabs {
+    display: flex;
+    background: var(--card-bg);
+    padding: 4px;
+    border-radius: 40px;
+    border: 1px solid var(--border-color);
+    gap: 4px;
+}
+
+.filter-tab {
+    background: transparent;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-tab:hover {
+    background: rgba(74, 108, 247, 0.05);
+    color: var(--primary-color);
+}
+
+.filter-tab.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+.tab-count {
+    background: rgba(255,255,255,0.2);
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+}
+
+.filter-tab:not(.active) .tab-count {
+    background: var(--border-color);
+    color: var(--text-secondary);
+}
+
+/* 搜索框 */
+.search-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-wrapper i {
+    position: absolute;
+    left: 14px;
+    color: var(--text-secondary);
+}
+
+.search-wrapper input {
+    padding: 10px 14px 10px 38px;
+    border-radius: 30px;
+    border: 1.5px solid var(--border-color);
+    background: white;
+    width: 220px;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.search-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.12);
+}
+
+/* 排序选择器 */
+.sort-select {
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+    background: white;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+/* 收藏卡片 */
+.favorite-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding: 1.5rem;
+}
+
+.card-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.card-header-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.favorite-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+    line-height: 1.4;
+}
+
+.risk-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.risk-badge.high {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.risk-badge.medium {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+.meta-info {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.meta-item i {
+    width: 14px;
+    text-align: center;
+}
+
+.summary {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.card-tags {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.tag {
+    background: rgba(74, 108, 247, 0.08);
+    color: var(--primary-color);
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.tag.positive { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+.tag.negative { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+.tag.neutral { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+
+.card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.profile-btn.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* 空状态 */
+.empty-state-card {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-illustration {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 1.5rem;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--card-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 2rem;
+    color: var(--border-color);
+}
+
+.empty-icon i {
+    font-size: 2.5rem;
+}
+
+.empty-state-card h4 {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state-card p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.no-results-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.no-results-state h4 {
+    color: var(--text-primary);
+    margin: 1rem 0 8px;
+}
+
+.no-results-state p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .favorite-card {
+        flex-direction: column;
+    }
+    .card-actions {
+        flex-direction: row;
+        width: 100%;
+    }
+    .favorites-header {
+        flex-direction: column;
+    }
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .search-wrapper input {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+function viewDetail(eventId) {
+    window.location.href = `/dashboard/event/detail/${eventId}`;
+}
+
+function unfavorite(eventId, btn) {
+    if (!confirm('确定取消收藏该事件吗？')) return;
+
+    fetch(`/favorite/toggle/${eventId}`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && !data.favorited) {
+                const card = btn.closest('.favorite-card');
+                card.style.animation = 'fadeInUp 0.3s ease reverse forwards';
+                setTimeout(() => {
+                    card.remove();
+                    if (document.querySelectorAll('.favorite-card').length === 0) {
+                        location.reload();
+                    }
+                }, 300);
+                showToast('已取消收藏', 'success');
+            } else {
+                showToast(data.message || '操作失败', 'error');
+            }
+        })
+        .catch(() => {
+            showToast('网络错误，请稍后重试', 'error');
+        });
+}
+
+// 增强筛选功能
+function filterFavorites() {
+    const activeFilter = document.querySelector('.filter-tab.active').dataset.filter;
+    const searchTerm = document.querySelector('#searchInput').value.toLowerCase();
+    const cards = document.querySelectorAll('.favorite-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+        const title = card.querySelector('.favorite-title').textContent.toLowerCase();
+        const summary = card.querySelector('.summary')?.textContent.toLowerCase() || '';
+        const tags = Array.from(card.querySelectorAll('.tag')).map(tag => tag.textContent.toLowerCase()).join(' ');
+
+        // 分类筛选
+        let categoryMatch = true;
+        if (activeFilter === 'high_risk') {
+            categoryMatch = card.querySelector('.risk-badge.high') !== null;
+        } else if (activeFilter === 'recent') {
+            const cardDate = new Date(card.dataset.date);
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            categoryMatch = cardDate >= weekAgo;
+        }
+
+        // 关键词搜索
+        const searchMatch = !searchTerm ||
+            title.includes(searchTerm) ||
+            summary.includes(searchTerm) ||
+            tags.includes(searchTerm);
+
+        // 显示/隐藏卡片
+        if (categoryMatch && searchMatch) {
+            card.style.display = '';
+            card.style.animationDelay = `${visibleCount * 0.05}s`;
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // 更新空状态显示
+    const noResultsState = document.getElementById('noResultsState');
+    if (visibleCount === 0 && cards.length > 0) {
+        noResultsState.style.display = 'block';
+    } else {
+        noResultsState.style.display = 'none';
+    }
+}
+
+// 清除筛选
+function clearFilters() {
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    document.querySelector('.filter-tab[data-filter="all"]').classList.add('active');
+    document.getElementById('searchInput').value = '';
+    filterFavorites();
+}
+
+// 排序功能
+function sortFavorites(criteria) {
+    const container = document.getElementById('favoritesList');
+    const cards = Array.from(document.querySelectorAll('.favorite-card'));
+
+    cards.sort((a, b) => {
+        switch (criteria) {
+            case 'date-desc':
+                return new Date(b.dataset.date) - new Date(a.dataset.date);
+            case 'date-asc':
+                return new Date(a.dataset.date) - new Date(b.dataset.date);
+            case 'heat-desc':
+                return parseInt(b.dataset.heat) - parseInt(a.dataset.heat);
+            case 'heat-asc':
+                return parseInt(a.dataset.heat) - parseInt(b.dataset.heat);
+            default:
+                return 0;
+        }
+    });
+
+    // 重新插入排序后的卡片
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.05}s`;
+        container.insertBefore(card, container.querySelector('#noResultsState'));
+    });
+}
+
+// 初始化事件监听
+document.addEventListener('DOMContentLoaded', function() {
+    // 筛选标签点击事件
+    document.querySelectorAll('.filter-tab').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            filterFavorites();
+        });
+    });
+
+    // 搜索框输入事件（带防抖）
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                filterFavorites();
+            }, 300);
+        });
+    }
+});
+</script>
+{% endblock %}

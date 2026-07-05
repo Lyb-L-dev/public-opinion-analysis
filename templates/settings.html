@@ -1,0 +1,487 @@
+{% extends "profile_base.html" %}
+
+{% block title %}系统设置{% endblock %}
+
+{% block page_title %}系统设置{% endblock %}
+{% block page_subtitle %}配置系统参数{% endblock %}
+
+{% block profile_content %}
+<div class="profile-content-wrapper fade-in-up">
+
+    <!-- 提示横幅 -->
+    <div class="settings-alert profile-card" style="border-left: 4px solid var(--warning-color);">
+        <i class="fas fa-info-circle" style="color: var(--warning-color); font-size: 1.2rem;"></i>
+        <div>
+            <strong>配置说明</strong>
+            <p>部分配置修改后需要重启服务才能生效。敏感配置项请谨慎修改。</p>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.settings') }}" id="settingsForm">
+
+        <!-- Kafka 配置卡片 -->
+        <div class="settings-section">
+            <div class="settings-section-header">
+                <div class="section-icon" style="background: rgba(74,108,247,0.1); color: var(--primary-color);">
+                    <i class="fas fa-plug"></i>
+                </div>
+                <div class="section-info">
+                    <h3>Kafka 配置</h3>
+                    <p>消息队列连接设置</p>
+                </div>
+            </div>
+
+            <div class="settings-card profile-card">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="settings-alert-inline settings-alert-{{ category }}" style="margin-bottom: 1rem;">
+                                <i class="fas fa-{{ 'check' if category == 'success' else 'exclamation' }}-circle"></i>
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <div class="settings-form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Kafka Broker 地址</label>
+                        <input type="text" class="profile-form-control"
+                               name="kafka_broker"
+                               value="{{ config.KAFKA_BROKER_LIST }}"
+                               placeholder="localhost:9092">
+                        <small class="form-hint">多个 broker 用逗号分隔</small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">消费者组 ID</label>
+                        <input type="text" class="profile-form-control"
+                               name="kafka_group"
+                               value="{{ config.KAFKA_CONSUMER_GROUP }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spark 配置卡片 -->
+        <div class="settings-section">
+            <div class="settings-section-header">
+                <div class="section-icon" style="background: rgba(139,92,246,0.1); color: var(--purple-color);">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <div class="section-info">
+                    <h3>Spark 配置</h3>
+                    <p>流计算引擎设置</p>
+                </div>
+            </div>
+
+            <div class="settings-card profile-card">
+                <div class="settings-form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Spark Master</label>
+                        <input type="text" class="profile-form-control"
+                               name="spark_master"
+                               value="{{ config.SPARK_MASTER }}"
+                               placeholder="local[2]">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">应用名称</label>
+                        <input type="text" class="profile-form-control"
+                               name="spark_app_name"
+                               value="{{ config.SPARK_APP_NAME }}">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">Checkpoint 目录</label>
+                        <input type="text" class="profile-form-control"
+                               name="spark_checkpoint"
+                               value="{{ config.SPARK_CHECKPOINT_ROOT }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 爬虫配置卡片 -->
+        <div class="settings-section">
+            <div class="settings-section-header">
+                <div class="section-icon" style="background: rgba(16,185,129,0.1); color: var(--success-color);">
+                    <i class="fas fa-spider"></i>
+                </div>
+                <div class="section-info">
+                    <h3>爬虫配置</h3>
+                    <p>数据采集相关设置</p>
+                </div>
+            </div>
+
+            <div class="settings-card profile-card">
+                <div class="settings-form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Edge Driver 路径</label>
+                        <input type="text" class="profile-form-control"
+                               name="edge_driver"
+                               value="{{ config.EDGE_DRIVER_PATH }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Edge 用户数据目录</label>
+                        <input type="text" class="profile-form-control"
+                               name="edge_user_data"
+                               value="{{ config.EDGE_USER_DATA_DIR }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">微博热搜 URL</label>
+                        <input type="text" class="profile-form-control"
+                               name="weibo_hot_url"
+                               value="{{ config.WEIBO_HOT_URL }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大滚动次数</label>
+                        <input type="number" class="profile-form-control"
+                               name="crawl_max_scrolls"
+                               value="{{ config.CRAWL_MAX_SCROLLS }}"
+                               min="1" max="100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">抓取热搜数量</label>
+                        <input type="number" class="profile-form-control"
+                               name="crawl_num_hot_searches"
+                               value="{{ config.CRAWL_NUM_HOT_SEARCHES }}"
+                               min="5" max="100">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI/ML 配置卡片 -->
+        <div class="settings-section">
+            <div class="settings-section-header">
+                <div class="section-icon" style="background: rgba(236,72,153,0.1); color: #EC4899;">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="section-info">
+                    <h3>AI / ML 配置</h3>
+                    <p>机器学习模型及大模型API设置</p>
+                </div>
+            </div>
+
+            <div class="settings-card profile-card">
+                <div class="settings-form-grid" style="margin-bottom: 1.5rem;">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">
+                            <i class="fas fa-robot" style="color: #EC4899; margin-right: 4px;"></i>
+                            MiniMax API 地址
+                        </label>
+                        <input type="text" class="profile-form-control"
+                               name="minimax_api_url"
+                               id="minimaxApiUrl"
+                               value="{{ system_config.get('MINIMAX_API_URL', 'https://api.minimaxi.com/anthropic') }}"
+                               placeholder="https://api.minimaxi.com/anthropic">
+                        <small class="form-hint">
+                            MiniMax API 接口地址，保持默认即可。
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-key" style="color: #EC4899; margin-right: 4px;"></i>
+                            MiniMax API Key
+                        </label>
+                        <input type="password" class="profile-form-control"
+                               name="minimax_api_key"
+                               id="minimaxApiKey"
+                               value="{{ minimax_api_key or '' }}"
+                               placeholder="输入 MiniMax API Key">
+                        <small class="form-hint">
+                            用于 AI 智能分析报告生成。
+                            <a href="https://www.minimax.io/" target="_blank" style="color: var(--primary-color);">前往申请 →</a>
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <i class="fas fa-brain" style="color: #EC4899; margin-right: 4px;"></i>
+                            模型名称
+                        </label>
+                        <input type="text" class="profile-form-control"
+                               name="minimax_model_name"
+                               id="minimaxModelName"
+                               value="{{ minimax_model_name or 'MiniMax-M2.7' }}"
+                               placeholder="MiniMax-M2.7">
+                        <small class="form-hint">
+                            MiniMax API 模型名称，如 MiniMax-M2.7（必填）
+                        </small>
+                    </div>
+                </div>
+
+                <div class="toggle-group">
+                    <div class="toggle-item">
+                        <div class="toggle-info">
+                            <h4>CSV 自动导出</h4>
+                            <p>爬取时自动保存 CSV 文件到指定目录</p>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" name="csv_export_enabled"
+                                   {% if system_config.get('csv_export_enabled') == 'true' or system_config.get('csv_export_enabled') is not defined %}checked{% endif %}>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 保存按钮 -->
+        <div class="settings-footer">
+            <button type="button" class="profile-btn profile-btn-outline" onclick="resetSettings()">
+                <i class="fas fa-undo"></i> 恢复默认
+            </button>
+            <button type="submit" class="profile-btn profile-btn-primary" id="submitBtn">
+                <i class="fas fa-save"></i> 保存配置
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+.profile-content-wrapper {
+    max-width: 900px;
+}
+
+/* 提示横幅 */
+.settings-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 1rem 1.25rem;
+    background: var(--card-bg);
+    border-radius: var(--profile-card-radius);
+    margin-bottom: 24px;
+}
+
+.settings-alert i {
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.settings-alert strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
+
+.settings-alert p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+/* 内联提示 */
+.settings-alert-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.settings-alert-inline.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.settings-alert-inline.error {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+/* 设置分组 */
+.settings-section {
+    margin-bottom: 24px;
+}
+
+.settings-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.section-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.section-info h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 2px;
+}
+
+.section-info p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.settings-card {
+    padding: 1.5rem;
+}
+
+/* 表单网格 */
+.settings-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Toggle 开关 */
+.toggle-group {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.toggle-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.toggle-info h4 {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0 0 4px;
+}
+
+.toggle-info p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 48px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--border-color);
+    border-radius: 13px;
+    transition: var(--transition);
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: var(--transition);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--primary-color);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+    transform: translateX(22px);
+}
+
+/* 底部按钮 */
+.settings-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .settings-form-grid {
+        grid-template-columns: 1fr;
+    }
+    .settings-form-grid .form-group[style*="grid-column"] {
+        grid-column: 1;
+    }
+    .toggle-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}
+</style>
+
+<script>
+// 表单提交处理
+document.getElementById('settingsForm')?.addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.classList.add('loading');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    submitBtn.disabled = true;
+
+    // 允许表单正常提交
+    setTimeout(() => {
+        submitBtn.classList.remove('loading');
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> 保存配置';
+        submitBtn.disabled = false;
+    }, 3000);
+});
+
+function resetSettings() {
+    if (confirm('确定要恢复所有配置为默认值吗？')) {
+        showToast('已恢复默认配置', 'warning');
+    }
+}
+
+// API Key 显示/隐藏切换
+document.getElementById('minimaxApiKey')?.addEventListener('dblclick', function() {
+    if (this.type === 'password') {
+        this.type = 'text';
+    } else {
+        this.type = 'password';
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>舆情可视化 | 智能分析系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.45.0/apexcharts.min.css">
+    <!-- ECharts 核心库和词云扩展 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
+    <!-- 引入ECharts中国地图数据 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/china.js"></script>
+    <style>
+        /* 与仪表盘完全一致的样式 */
+        :root {
+            --primary-color: #4A6CF7;
+            --primary-light: #6B8AFF;
+            --primary-dark: #3A5BD9;
+            --secondary-color: #6C757D;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #3B82F6;
+            --purple-color: #8B5CF6;
+            --dark-bg: #FFFFFF;
+            --card-bg: #F8F9FA;
+            --light-bg: #FFFFFF;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+            --text-light: #495057;
+            --border-color: #DEE2E6;
+            --sidebar-width: 280px;
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--dark-bg);
+            color: var(--text-secondary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 2rem 1.5rem;
+            transition: var(--transition);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            margin-top: 3rem;
+            gap: 0.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem 0;
+        }
+
+        .page-title h1 {
+            color: var(--text-primary);
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-title p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .search-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .search-box input {
+            padding: 0.5rem 1rem 0.5rem 2rem;
+            border-radius: 8px;
+            min-width: 250px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            position: relative;
+        }
+
+        .notification-badge {
+            position: relative;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .notification-badge .badge-count {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--danger-color);
+            color: white;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 6px 12px 6px 6px;
+            border-radius: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.15);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .user-profile .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-profile .user-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .user-profile .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-profile .dropdown-arrow {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-left: 4px;
+            transition: var(--transition);
+        }
+
+        .user-profile:hover .dropdown-arrow {
+            color: var(--primary-color);
+        }
+
+        #userDropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            min-width: 240px;
+            z-index: 9999;
+            overflow: hidden;
+            animation: dropdownIn 0.2s ease;
+        }
+
+        @keyframes dropdownIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header {
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, rgba(74, 108, 247, 0.08), rgba(139, 92, 246, 0.08));
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-header .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .dropdown-header .user-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .dropdown-section {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-section-title {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        #userDropdown a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        #userDropdown a:hover {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        #userDropdown a i {
+            color: var(--primary-color);
+            width: 18px;
+            text-align: center;
+        }
+
+        #userDropdown .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 0.5rem 0;
+        }
+
+        #userDropdown a.logout-btn {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn i {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn:hover {
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        #userDropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 60px;
+            background: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            min-width: 180px;
+            z-index: 9999;
+            overflow: hidden;
+        }
+
+        #userDropdown a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.9rem 1.2rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: var(--transition);
+        }
+
+        #userDropdown a.logout-btn {
+            color: var(--danger-color);
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* 图表卡片 */
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-header h3 {
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-btn {
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .chart-btn:hover, .chart-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .chart-container {
+            height: 400px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* 地图容器高度 */
+        .map-chart-container {
+            height: 500px;
+            width: 100%;
+            position: relative;
+        }
+
+        /* 排行榜列表样式 */
+        .ranking-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .ranking-item:hover {
+            background-color: rgba(74, 108, 247, 0.08);
+            transition: background-color 0.2s;
+            border-radius: 6px;
+        }
+        .ranking-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .ranking-item:last-child {
+            border-bottom: none;
+        }
+        .ranking-rank {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6C757D;
+            text-align: center;
+            line-height: 28px;
+            margin-right: 10px;
+            font-weight: 600;
+        }
+        .ranking-rank.top-1 { background: #FFD700; color: #212529; }
+        .ranking-rank.top-2 { background: #C0C0C0; color: #212529; }
+        .ranking-rank.top-3 { background: #CD7F32; color: #212529; }
+        .ranking-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+        .ranking-value {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-left: 1rem;
+        }
+
+        /* 网格布局 */
+        .visualization-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        /* 两列布局辅助 */
+        .split-col {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 992px) {
+            .visualization-grid {
+                grid-template-columns: 1fr;
+            }
+            .split-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .fade-in {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏（完整版） -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <span>舆情分析</span>
+            </a>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i><span>首页</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('visualization.index') }}" class="nav-link active">
+                    <i class="fas fa-map-location-dot"></i><span>舆情可视化</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.hot_event_list') }}" class="nav-link">
+                    <i class="fas fa-fire"></i><span>热点事件</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('keywords.index') }}" class="nav-link">
+                    <i class="fas fa-tags"></i><span>关键词分析</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('enhanced_visualization.ml_dashboard') }}" class="nav-link">
+                    <i class="fas fa-brain"></i><span>智能分析</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('auth.profile_info') }}" class="nav-link">
+                    <i class="fas fa-user"></i><span>个人中心</span>
+                </a>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        <!-- 顶部栏 -->
+        <div class="topbar">
+            <div class="page-title">
+                <h1>舆情可视化</h1>
+                <p>关键词云、地域分布、情感趋势与热点排行</p>
+            </div>
+
+            <div class="user-menu">
+                <div class="user-profile" onclick="toggleUserMenu()">
+                    <div class="avatar">{{ username[:1] if username else 'U' }}</div>
+                    <div class="user-info">
+                        <span class="user-name">{{ username if username else '匿名用户' }}</span>
+                        <span class="user-role">{{ '管理员' if session.role == 'admin' else '普通用户' }}</span>
+                    </div>
+                    <i class="fas fa-chevron-down dropdown-arrow"></i>
+                </div>
+
+                <div id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="user-name">{{ username if username else '匿名用户' }}</div>
+                        <div class="user-email">已登录</div>
+                    </div>
+                    <div class="dropdown-section">
+                        <div class="dropdown-section-title">快捷操作</div>
+                        <a href="{{ url_for('auth.profile_info') }}"><i class="fas fa-user"></i><span>个人中心</span></a>
+                        <a href="{{ url_for('auth.profile_favorites') }}"><i class="fas fa-star"></i><span>我的收藏</span></a>
+                        <a href="{{ url_for('csv_export.index') }}"><i class="fas fa-file-export"></i><span>数据导出</span></a>
+                        {% if session.role == 'admin' %}
+                        <a href="{{ url_for('auth.settings') }}"><i class="fas fa-cog"></i><span>系统设置</span></a>
+                        {% endif %}
+                    </div>
+                    <div class="divider"></div>
+                    <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>退出登录</span></a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 可视化网格 -->
+        <div class="visualization-grid">
+            <!-- 第一行：地图 + 热点事件排行榜 -->
+            <div class="full-width split-col">
+                <!-- 地图卡片 -->
+                <div class="chart-card fade-in">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-map" style="color: var(--primary-color);"></i> 舆情地域分布</h3>
+                        <div class="chart-actions" id="mapActions">
+                            <button class="chart-btn active" onclick="refreshMap('event', this)">按评论热度</button>
+                            <button class="chart-btn" onclick="refreshMap('sentiment', this)">按平均情感分</button>
+                        </div>
+                    </div>
+                    <div class="map-chart-container" id="mapChart"></div>
+                </div>
+
+                <!-- 热门事件排行榜卡片 -->
+                <div class="chart-card fade-in">
+                    <div class="chart-header">
+                        <h3><i class="fas fa-fire" style="color: var(--primary-color);"></i> 热点事件热度排行</h3>
+                        <div class="chart-actions">
+                            <span class="chart-btn" style="cursor: default;">热度值</span>
+                        </div>
+                    </div>
+                    <div style="max-height: 500px; overflow-y: auto; padding-right: 0.5rem;">
+                        <ul class="ranking-list" id="topEventsList">
+                            <!-- 动态生成 -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 第二行：词云（全宽） -->
+            <div class="chart-card full-width fade-in">
+                <div class="chart-header">
+                    <h3><i class="fas fa-cloud" style="color: var(--primary-color);"></i> 舆情关键词云</h3>
+                    <div class="chart-actions" id="wordcloudActions">
+                        <button class="chart-btn active" onclick="refreshWordCloud(30, this)">近30天</button>
+                        <button class="chart-btn" onclick="refreshWordCloud(7, this)">近7天</button>
+                        <button class="chart-btn" onclick="refreshWordCloud(1, this)">近24h</button>
+                    </div>
+                </div>
+                <div class="chart-container" id="wordcloudChart"></div>
+            </div>
+
+            <!-- 第三行：事件热度与情感关联 + 评论情感趋势折线图 -->
+            <div class="chart-card fade-in">
+                <div class="chart-header">
+                    <h3><i class="fas fa-bullseye"></i> 热度与情感关联</h3>
+                </div>
+                <div class="chart-container" id="heatSentimentChart"></div>
+            </div>
+
+            <div class="chart-card fade-in">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> 评论情感趋势</h3>
+                    <div class="chart-actions" id="trendChartActions">
+                        <button class="chart-btn active" data-range="week" onclick="refreshCommentTrend('week', this)">本周</button>
+                        <button class="chart-btn" data-range="month" onclick="refreshCommentTrend('month', this)">本月</button>
+                    </div>
+                </div>
+                <div class="chart-container" id="commentTrendChart"></div>
+            </div>
+
+            <!-- 第四行：事件热度趋势折线图 + 评论点赞分布柱状图 -->
+            <div class="chart-card fade-in">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-line"></i> 事件热度趋势</h3>
+                    <div class="chart-actions" id="heatTrendActions">
+                        <button class="chart-btn active" onclick="refreshHeatTrend('week', this)">本周</button>
+                        <button class="chart-btn" onclick="refreshHeatTrend('month', this)">本月</button>
+                    </div>
+                </div>
+                <div class="chart-container" id="heatTrendChart"></div>
+            </div>
+
+            <div class="chart-card fade-in">
+                <div class="chart-header">
+                    <h3><i class="fas fa-chart-bar"></i> 评论点赞分布</h3>
+                </div>
+                <div class="chart-container" id="likeDistributionChart"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        // ---------- 全局变量 ----------
+        let wordcloudChart = null;
+        let heatSentimentChart = null;
+        let commentTrendChart = null;
+        let mapChart = null;
+        let heatTrendChart = null;
+        let likeDistributionChart = null;
+
+        // ---------- 初始化 ----------
+        document.addEventListener('DOMContentLoaded', function() {
+            initMapVisualization('event');
+            initTopEvents();
+            initWordCloud(30);
+            initHeatSentiment();
+            initCommentTrend('week');
+            initHeatTrend('week');
+            initLikeDistribution();
+
+            const searchInput = document.querySelector('.search-box input');
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = searchInput.value.trim();
+                    if (query) window.location.href = `/search?keyword=${encodeURIComponent(query)}`;
+                }
+            });
+        });
+
+        // ---------- 词云 (ECharts) - 优化版 ----------
+        function initWordCloud(days = 30) {
+            fetch(`/visualization/api/wordcloud?days=${days}`)
+                .then(res => res.json())
+                .then(data => {
+                    // 优化配色方案 - 使用渐变色系
+                    const colorPalette = [
+                        '#4F46E5', '#7C3AED', '#8B5CF6', '#A855F7', '#D946EF',
+                        '#EC4899', '#F43F5E', '#EF4444', '#F97316', '#F59E0B',
+                        '#10B981', '#14B8A6', '#06B6D4', '#3B82F6', '#6366F1'
+                    ];
+                    // 根据权重计算颜色索引
+                    const maxWeight = data.length > 0 ? Math.max(...data.map(d => d.weight)) : 1;
+
+                    const option = {
+                        tooltip: { show: true, formatter: '{b}: {c}' },
+                        series: [{
+                            type: 'wordCloud',
+                            shape: 'diamond',
+                            left: 'center',
+                            top: 'center',
+                            width: '90%',
+                            height: '90%',
+                            right: null,
+                            bottom: null,
+                            gridSize: 6,
+                            sizeRange: [14, 48],
+                            rotationRange: [-45, 45],
+                            rotationStep: 15,
+                            shrinkToFit: false,
+                            drawOutOfBound: false,
+                            layoutAnimation: true,
+                            textStyle: {
+                                fontFamily: 'Microsoft YaHei, sans-serif',
+                                fontWeight: 'bold',
+                                color: function(params) {
+                                    // 根据权重分配颜色，权重越高颜色越突出
+                                    const colorIndex = Math.floor((params.data.weight / maxWeight) * (colorPalette.length - 1));
+                                    return colorPalette[colorIndex];
+                                }
+                            },
+                            emphasis: {
+                                textStyle: {
+                                    textShadowBlur: 10,
+                                    textShadowColor: '#333'
+                                }
+                            },
+                            data: data.map(item => ({
+                                name: item.word,
+                                value: item.weight,
+                                // 预先计算好样式
+                                textStyle: {
+                                    color: colorPalette[Math.floor((item.weight / maxWeight) * (colorPalette.length - 1))]
+                                }
+                            }))
+                        }]
+                    };
+                    if (!wordcloudChart) {
+                        wordcloudChart = echarts.init(document.getElementById('wordcloudChart'));
+                    }
+                    wordcloudChart.setOption(option);
+                })
+                .catch(err => {
+                    console.error('词云加载失败', err);
+                    document.getElementById('wordcloudChart').innerHTML = '<div class="chart-empty">词云数据加载失败</div>';
+                });
+        }
+
+        function refreshWordCloud(days, btn) {
+            document.querySelectorAll('#wordcloudActions .chart-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            initWordCloud(days);
+        }
+
+        // ---------- 地图可视化 ----------
+        function initMapVisualization(type = 'event') {
+            fetch(`/visualization/api/map_data?type=${type}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (!data || data.length === 0) {
+                        document.getElementById('mapChart').innerHTML = '<div class="chart-empty">暂无地域数据</div>';
+                        return;
+                    }
+
+                    const mapOption = {
+                        backgroundColor: 'transparent',
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: function(params) {
+                                const label = type === 'event' ? '评论数' : '平均情感分';
+                                const value = type === 'event' ? params.value : params.value.toFixed(3);
+                                return `${params.name}: ${value} ${type === 'event' ? '条' : ''}`;
+                            }
+                        },
+                        visualMap: {
+                            min: type === 'event' ? 0 : 0.5,
+                            max: type === 'event' ? Math.max(...data.map(d => d.value)) : 1,
+                            left: 'left',
+                            top: 'bottom',
+                            text: ['高', '低'],
+                            calculable: true,
+                            inRange: { color: ['#e0f7fa', '#b2ebf2', '#80deea', '#4dd0e1', '#26c6da', '#00bcd4'] }
+                        },
+                        series: [{
+                            name: type === 'event' ? '评论数' : '平均情感分',
+                            type: 'map',
+                            mapType: 'china',
+                            roam: true,
+                            label: { show: true, fontSize: 10, color: '#333' },
+                            emphasis: { label: { color: '#fff' }, itemStyle: { areaColor: '#4A6CF7' } },
+                            data: data
+                        }]
+                    };
+
+                    if (!mapChart) {
+                        mapChart = echarts.init(document.getElementById('mapChart'));
+                        window.addEventListener('resize', () => mapChart.resize());
+                    }
+                    mapChart.setOption(mapOption);
+                })
+                .catch(err => {
+                    console.error('地图数据加载失败', err);
+                    document.getElementById('mapChart').innerHTML = '<div class="chart-empty">地图数据加载失败</div>';
+                });
+        }
+
+        function refreshMap(type, btn) {
+            document.querySelectorAll('#mapActions .chart-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            initMapVisualization(type);
+        }
+
+        // ---------- 热门事件排行榜 ----------
+        function initTopEvents() {
+    fetch('/visualization/api/top_events?limit=25')
+        .then(res => res.json())
+        .then(data => {
+            const listEl = document.getElementById('topEventsList');
+            listEl.innerHTML = '';
+            if (!data || data.length === 0) {
+                listEl.innerHTML = '<li class="ranking-item">暂无热门事件</li>';
+                return;
+            }
+            data.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.className = 'ranking-item';
+                li.style.cursor = 'pointer';  // 鼠标手型
+
+                // 排名徽章
+                const rankSpan = document.createElement('span');
+                rankSpan.className = 'ranking-rank';
+                if (index === 0) rankSpan.classList.add('top-1');
+                else if (index === 1) rankSpan.classList.add('top-2');
+                else if (index === 2) rankSpan.classList.add('top-3');
+                rankSpan.textContent = (index + 1).toString();
+
+                // 标题（悬停显示完整文本）
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'ranking-title';
+                titleSpan.textContent = item.title;
+                titleSpan.setAttribute('title', item.title);
+
+                // 热度值
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'ranking-value';
+                valueSpan.textContent = item.heat;
+
+                li.appendChild(rankSpan);
+                li.appendChild(titleSpan);
+                li.appendChild(valueSpan);
+
+                // 点击跳转到微博搜索该标题
+                li.addEventListener('click', () => {
+                    const url = 'https://s.weibo.com/weibo?q=' + encodeURIComponent(item.title);
+                    window.open(url, '_blank');
+                });
+
+                listEl.appendChild(li);
+            });
+        })
+        .catch(err => {
+            console.error('热门事件加载失败', err);
+            document.getElementById('topEventsList').innerHTML = '<li class="ranking-item">加载失败</li>';
+        });
+}
+
+       function initHeatSentiment() {
+    fetch('/visualization/api/heat_sentiment')
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('heatSentimentChart');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="chart-empty">暂无数据</div>';
+                return;
+            }
+
+            // 获取热度值的范围（确保大于0）
+            const heatValues = data.map(item => item.heat).filter(v => v > 0);
+            const minHeat = Math.min(...heatValues);
+            const maxHeat = Math.max(...heatValues);
+
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        return `${params.data.name}<br/>热度: ${params.data.value[0]}<br/>情感分: ${params.data.value[1].toFixed(3)}`;
+                    }
+                },
+                grid: { left: '8%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+                xAxis: {
+                    type: 'log',                // 关键修改：使用对数轴
+                    name: '热度',
+                    nameLocation: 'middle',
+                    nameGap: 25,
+                    nameTextStyle: { color: '#64748B' },
+                    axisLabel: { color: '#64748B' },
+                    splitLine: { lineStyle: { color: '#E2E8F0' } },
+                    // 设置最小值和最大值（略小于最小/大于最大，以留白）
+                    min: minHeat * 0.9,
+                    max: maxHeat * 1.1,
+                    // 对数轴刻度格式化（可选）
+                    axisLabel: {
+                        formatter: (value) => {
+                            if (value >= 10000) return (value / 10000).toFixed(0) + 'w';
+                            if (value >= 1000) return (value / 1000).toFixed(0) + 'k';
+                            return value;
+                        }
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '情感分',
+                    nameLocation: 'middle',
+                    nameGap: 35,
+                    nameTextStyle: { color: '#64748B' },
+                    min: 0,
+                    max: 1,
+                    axisLabel: { color: '#64748B' },
+                    splitLine: { lineStyle: { color: '#E2E8F0' } }
+                },
+                series: [{
+                    type: 'scatter',
+                    symbolSize: function(data) {
+                        // 符号大小仍然基于热度，但可调整映射范围
+                        return Math.max(5, Math.min(15, data[0] / 50000)); // 根据实际情况调整分母
+                    },
+                    data: data.map(item => ({
+                        name: item.title,
+                        value: [item.heat, parseFloat(item.sentiment_score)],
+                        itemStyle: {
+                            color: item.sentiment_score > 0.6 ? '#10B981' :
+                                   item.sentiment_score < 0.4 ? '#EF4444' : '#F59E0B'
+                        }
+                    })),
+                    emphasis: {
+                        itemStyle: { borderColor: '#333', borderWidth: 2 }
+                    }
+                }]
+            };
+            if (heatSentimentChart) heatSentimentChart.dispose();
+            heatSentimentChart = echarts.init(container);
+            heatSentimentChart.setOption(option);
+        })
+        .catch(err => {
+            console.error('热度与情感关联加载失败', err);
+        });
+}
+
+        // ---------- 评论情感趋势 (ApexCharts 折线图) ----------
+        function initCommentTrend(range = 'week') {
+            fetch(`/visualization/api/comment_trend?range=${range}`)
+                .then(res => res.json())
+                .then(data => {
+                    const options = {
+                        series: [{
+                            name: '平均情感分',
+                            data: data.scores || []
+                        }],
+                        chart: { type: 'line', height: '100%', background: 'transparent', toolbar: { show: false } },
+                        colors: ['#4A6CF7'],
+                        stroke: { curve: 'smooth', width: 3 },
+                        xaxis: { categories: data.dates || [], labels: { style: { colors: '#6C757D' } } },
+                        yaxis: { min: 0, max: 1, labels: { style: { colors: '#6C757D' } } },
+                        grid: { borderColor: '#DEE2E6', strokeDashArray: 4 },
+                        tooltip: { y: { formatter: (val) => `情感分: ${val.toFixed(2)}` } }
+                    };
+                    if (commentTrendChart) commentTrendChart.destroy();
+                    commentTrendChart = new ApexCharts(document.querySelector("#commentTrendChart"), options);
+                    commentTrendChart.render();
+                })
+                .catch(err => {
+                    console.error('评论趋势加载失败', err);
+                });
+        }
+
+        function refreshCommentTrend(range, btn) {
+            document.querySelectorAll('#trendChartActions .chart-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            initCommentTrend(range);
+        }
+
+        // ---------- 事件热度趋势 (ApexCharts 折线图 - 双Y轴) ----------
+        function initHeatTrend(range = 'week') {
+            fetch(`/visualization/api/event_heat_trend?range=${range}`)
+                .then(res => res.json())
+                .then(data => {
+                    const options = {
+                        series: [
+                            { name: '总热度', data: data.total || [], yaxis: 0 },
+                            { name: '平均热度', data: data.avg || [], yaxis: 1 }
+                        ],
+                        chart: { type: 'line', height: '100%', background: 'transparent', toolbar: { show: false } },
+                        colors: ['#4A6CF7', '#F59E0B'],
+                        stroke: { curve: 'smooth', width: 3 },
+                        xaxis: { categories: data.dates || [], labels: { style: { colors: '#6C757D' } } },
+                        yaxis: [
+                            { // 左侧Y轴 - 总热度
+                                title: { text: '总热度', style: { color: '#4A6CF7' } },
+                                labels: { style: { colors: '#6C757D' } }
+                            },
+                            { // 右侧Y轴 - 平均热度
+                                opposite: true,
+                                title: { text: '平均热度', style: { color: '#F59E0B' } },
+                                labels: { style: { colors: '#F59E0B' } }
+                            }
+                        ],
+                        grid: { borderColor: '#DEE2E6', strokeDashArray: 4 },
+                        tooltip: { shared: true }
+                    };
+                    if (heatTrendChart) heatTrendChart.destroy();
+                    heatTrendChart = new ApexCharts(document.querySelector("#heatTrendChart"), options);
+                    heatTrendChart.render();
+                })
+                .catch(err => {
+                    console.error('热度趋势加载失败', err);
+                });
+        }
+
+        function refreshHeatTrend(range, btn) {
+            document.querySelectorAll('#heatTrendActions .chart-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            initHeatTrend(range);
+        }
+
+        // ---------- 评论点赞分布 (ApexCharts 柱状图) ----------
+        function initLikeDistribution() {
+            fetch('/visualization/api/comment_like_distribution')
+                .then(res => res.json())
+                .then(data => {
+                    const categories = Object.keys(data);
+                    const values = Object.values(data);
+                    const options = {
+                        series: [{
+                            name: '评论数',
+                            data: values
+                        }],
+                        chart: { type: 'bar', height: '100%', background: 'transparent', toolbar: { show: false } },
+                        colors: ['#10B981'],
+                        plotOptions: {
+                            bar: { borderRadius: 4, columnWidth: '60%' }
+                        },
+                        xaxis: { categories: categories, labels: { style: { colors: '#6C757D' } } },
+                        yaxis: { labels: { style: { colors: '#6C757D' } } },
+                        grid: { borderColor: '#DEE2E6', strokeDashArray: 4 },
+                        tooltip: { y: { formatter: (val) => `${val} 条` } }
+                    };
+                    if (likeDistributionChart) likeDistributionChart.destroy();
+                    likeDistributionChart = new ApexCharts(document.querySelector("#likeDistributionChart"), options);
+                    likeDistributionChart.render();
+                })
+                .catch(err => {
+                    console.error('点赞分布加载失败', err);
+                });
+        }
+
+        // ---------- 用户下拉菜单 ----------
+        function toggleUserMenu() {
+            const menu = document.getElementById('userDropdown');
+            const isHidden = menu.style.display === 'none' || menu.style.display === '';
+
+            if (isHidden) {
+                menu.style.display = 'block';
+                document.addEventListener('click', function closeMenu(e) {
+                    const userProfile = document.querySelector('.user-profile');
+                    if (!userProfile.contains(e.target) && !menu.contains(e.target)) {
+                        menu.style.display = 'none';
+                        document.removeEventListener('click', closeMenu);
+                    }
+                });
+            } else {
+                menu.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

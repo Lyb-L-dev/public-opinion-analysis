@@ -1,0 +1,400 @@
+{% extends "profile_base.html" %}
+
+{% block title %}个人设置{% endblock %}
+
+{% block page_title %}个人设置{% endblock %}
+{% block page_subtitle %}管理您的个人信息{% endblock %}
+
+{% block profile_content %}
+<div class="profile-content-wrapper fade-in-up">
+
+    <!-- 用户概览卡片 -->
+    <div class="profile-overview-card profile-card mb-4">
+        <div class="overview-header">
+            <div class="avatar-upload">
+                <div class="avatar-preview" id="avatarPreview">
+                    {% if user.avatar_path %}
+                        <img src="{{ url_for('static', filename=user.avatar_path) }}" alt="头像">
+                    {% else %}
+                        <span class="avatar-initial">{{ user.username[:1] }}</span>
+                    {% endif %}
+                </div>
+                <div class="avatar-actions">
+                    <label for="avatarInput" class="profile-btn profile-btn-outline btn-sm">
+                        <i class="fas fa-upload"></i> 上传头像
+                    </label>
+                    <input type="file" id="avatarInput" accept="image/*" style="display:none" onchange="previewAvatar(this)">
+                    <p class="upload-hint">支持 jpg/png/gif，不超过 5MB</p>
+                </div>
+            </div>
+            <div class="user-stats">
+                <div class="stat-item">
+                    <span class="stat-num">{{ favorites_count|default(0) }}</span>
+                    <span class="stat-label">收藏事件</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-num">{{ user.visit_count|default(0) }}</span>
+                    <span class="stat-label">访问次数</span>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <span class="stat-num">{{ user.join_days|default(0) }}</span>
+                    <span class="stat-label">注册天数</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 基本信息表单卡片 -->
+    <div class="profile-card">
+        <div class="card-header-section">
+            <h3 class="section-title">
+                <i class="fas fa-user-edit" style="color: var(--primary-color);"></i>
+                基本信息
+            </h3>
+            <span class="section-badge">账户信息</span>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.profile_info') }}"
+              enctype="multipart/form-data" id="profileForm"
+              onsubmit="return handleProfileSubmit(event)">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-user"></i> 用户名
+                    </label>
+                    <input type="text" class="profile-form-control"
+                           value="{{ user.username }}" readonly>
+                    <small class="form-hint">用户名不可修改</small>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-envelope"></i> 邮箱
+                    </label>
+                    <input type="email" class="profile-form-control"
+                           value="{{ user.email|default('') }}"
+                           placeholder="请输入邮箱地址"
+                           name="email"
+                           id="emailInput">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-building"></i> 所属部门
+                    </label>
+                    <input type="text" class="profile-form-control"
+                           name="department"
+                           value="{{ user.department|default('') }}"
+                           placeholder="请输入所属部门"
+                           maxlength="50">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">
+                        <i class="fas fa-phone"></i> 联系电话
+                    </label>
+                    <input type="tel" class="profile-form-control"
+                           name="phone"
+                           value="{{ user.phone|default('') }}"
+                           placeholder="请输入联系电话"
+                           pattern="[0-9]{11}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">
+                    <i class="fas fa-pen"></i> 个人简介
+                </label>
+                <textarea class="profile-form-control" name="bio" rows="4"
+                          placeholder="介绍一下自己，最多200字"
+                          maxlength="200"
+                          id="bioInput">{{ user.bio|default('') }}</textarea>
+                <div class="char-counter">
+                    <span id="bioCount">{{ user.bio|length if user.bio else 0 }}</span>/200
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="profile-btn profile-btn-outline" onclick="resetForm()">
+                    <i class="fas fa-undo"></i> 重置
+                </button>
+                <button type="submit" class="profile-btn profile-btn-primary" id="submitBtn">
+                    <i class="fas fa-save"></i> 保存修改
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.profile-content-wrapper {
+    max-width: 800px;
+}
+
+/* 用户概览卡片 */
+.profile-overview-card .overview-header {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+}
+
+.avatar-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 3px solid white;
+    box-shadow: var(--shadow-md);
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-initial {
+    color: white;
+    font-size: 2.5rem;
+    font-weight: 600;
+}
+
+.avatar-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.upload-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.user-stats {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-num {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.stat-divider {
+    width: 1px;
+    height: 40px;
+    background: var(--border-color);
+}
+
+/* 表单布局 */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 0;
+}
+
+.card-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.section-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+}
+
+.section-badge {
+    background: rgba(74, 108, 247, 0.08);
+    color: var(--primary-color);
+    font-size: 0.75rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.form-label i {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.char-counter {
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.profile-btn.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .profile-overview-card .overview-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    .user-stats {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+// 字数实时统计
+document.getElementById('bioInput')?.addEventListener('input', function() {
+    document.getElementById('bioCount').textContent = this.value.length;
+});
+
+// 头像预览
+function previewAvatar(input) {
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+
+        // 类型验证
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+            showToast('仅支持 JPG/PNG/GIF 格式', 'error');
+            input.value = '';
+            return;
+        }
+
+        // 大小验证 (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('文件大小不能超过 5MB', 'error');
+            input.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const preview = document.getElementById('avatarPreview');
+            preview.innerHTML = `<img src="${e.target.result}" alt="头像预览">`;
+            showToast('头像已预览，保存后生效', 'success');
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// 表单提交处理
+function handleProfileSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const submitBtn = document.getElementById('submitBtn');
+
+    // 验证
+    const email = document.getElementById('emailInput').value;
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('请输入有效的邮箱地址', 'error');
+        return false;
+    }
+
+    // Loading 状态
+    submitBtn.classList.add('loading');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 保存中...';
+    submitBtn.disabled = true;
+
+    // 提交表单
+    const formData = new FormData(form);
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showToast('保存成功！', 'success');
+        } else {
+            showToast(data.message || '保存失败', 'error');
+        }
+    })
+    .catch(() => {
+        // 如果 fetch 失败，使用传统表单提交
+        form.submit();
+    })
+    .finally(() => {
+        submitBtn.classList.remove('loading');
+        submitBtn.innerHTML = '<i class="fas fa-save"></i> 保存修改';
+        submitBtn.disabled = false;
+    });
+
+    return false;
+}
+
+function resetForm() {
+    if (confirm('确定要重置所有修改吗？')) {
+        document.getElementById('profileForm').reset();
+        document.getElementById('bioCount').textContent = '0';
+        showToast('已重置', 'warning');
+    }
+}
+</script>
+{% endblock %}

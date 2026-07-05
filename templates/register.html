@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>注册 - 社会舆情分析系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif}
+
+body{
+min-height:100vh;
+overflow:hidden;
+background:#f3f6ff;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+/* ====== 动态科技光晕 ====== */
+body::before{
+content:"";
+position:absolute;
+width:200%;
+height:200%;
+background:
+radial-gradient(circle at 15% 30%,rgba(110,140,255,.35),transparent 45%),
+radial-gradient(circle at 80% 60%,rgba(130,160,255,.35),transparent 45%),
+radial-gradient(circle at 50% 90%,rgba(170,190,255,.35),transparent 45%);
+filter:blur(90px);
+animation:floatbg 18s ease-in-out infinite alternate;
+}
+
+@keyframes floatbg{
+0%{transform:translateY(-60px)}
+100%{transform:translateY(60px)}
+}
+
+/* ====== 数据网格 ====== */
+.grid{
+position:absolute;
+width:200%;
+height:200%;
+background-image:
+linear-gradient(rgba(110,130,255,.08) 1px, transparent 1px),
+linear-gradient(90deg, rgba(110,130,255,.08) 1px, transparent 1px);
+background-size:90px 90px;
+animation:gridMove 35s linear infinite;
+}
+
+@keyframes gridMove{
+0%{transform:translate(-10%,-10%)}
+100%{transform:translate(-4%,-4%)}
+}
+
+/* ====== 粒子网络画布 ====== */
+#network{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+z-index:0;
+}
+
+/* ====== 布局 ====== */
+.layout{
+width:1350px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+position:relative;
+z-index:2;
+}
+
+/* ====== 左侧品牌 ====== */
+.brand{
+max-width:620px;
+}
+
+.brand h1{
+font-size:50px;
+font-weight:700;
+letter-spacing:2px;
+color:#24335f;
+margin-bottom:20px;
+}
+
+.brand p{
+font-size:15px;
+line-height:1.9;
+color:#6a7694;
+margin-bottom:40px;
+}
+
+/* ====== 数据指标 ====== */
+.metrics{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:20px;
+}
+
+.metric{
+background:rgba(255,255,255,.65);
+backdrop-filter:blur(14px);
+padding:22px;
+border-radius:16px;
+border:1px solid rgba(255,255,255,.7);
+box-shadow:0 15px 40px rgba(0,0,0,.07);
+position:relative;
+overflow:hidden;
+}
+
+.metric::before{
+content:"";
+position:absolute;
+width:140%;
+height:140%;
+background:linear-gradient(120deg,transparent,rgba(255,255,255,.8),transparent);
+top:-20%;
+left:-120%;
+animation:shine 6s infinite;
+}
+
+@keyframes shine{
+0%{left:-120%}
+100%{left:120%}
+}
+
+.metric span{
+font-size:12px;
+color:#7a86a3;
+}
+
+.metric strong{
+font-size:26px;
+display:block;
+margin-top:6px;
+font-weight:600;
+color:#2c3a72;
+}
+
+/* ====== 注册卡片 ====== */
+.register-panel{
+width:430px;
+background:rgba(255,255,255,.78);
+backdrop-filter:blur(22px);
+border-radius:26px;
+padding:40px 44px;
+border:1px solid rgba(255,255,255,.8);
+box-shadow:0 60px 140px rgba(40,60,140,.18);
+position:relative;
+max-height:90vh;
+overflow-y:auto;
+}
+
+.register-panel::-webkit-scrollbar{
+width:6px;
+}
+
+.register-panel::-webkit-scrollbar-track{
+background:rgba(0,0,0,0.05);
+border-radius:3px;
+}
+
+.register-panel::-webkit-scrollbar-thumb{
+background:rgba(110,130,255,.3);
+border-radius:3px;
+}
+
+.register-panel::before{
+content:"";
+position:absolute;
+top:-2px;
+left:20%;
+width:60%;
+height:3px;
+background:linear-gradient(90deg,transparent,#7f9cff,transparent);
+}
+
+.panel-title{
+font-size:26px;
+font-weight:600;
+color:#26345f;
+margin-bottom:6px;
+}
+
+.panel-sub{
+font-size:13px;
+color:#7a86a5;
+margin-bottom:30px;
+}
+
+.input-group{margin-bottom:20px}
+
+.input-group label{
+font-size:12px;
+color:#66729b;
+display:block;
+margin-bottom:6px;
+}
+
+.input-group input,
+.input-group select{
+width:100%;
+padding:14px;
+font-size:14px;
+border-radius:12px;
+border:1px solid #e7ecf7;
+transition:.25s;
+background:#fff;
+}
+
+.input-group input:focus,
+.input-group select:focus{
+outline:none;
+border-color:#7c95ff;
+box-shadow:0 0 0 4px rgba(124,149,255,.2);
+}
+
+.input-group select{
+cursor:pointer;
+appearance:none;
+background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2366729b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+background-repeat:no-repeat;
+background-position:right 14px center;
+padding-right:36px;
+}
+
+.options{
+display:flex;
+justify-content:space-between;
+font-size:12px;
+color:#7c88a6;
+margin-bottom:24px;
+}
+
+.register-btn{
+width:100%;
+padding:14px;
+border:none;
+border-radius:12px;
+font-size:15px;
+font-weight:600;
+letter-spacing:.5px;
+color:white;
+background:linear-gradient(135deg,#5b7cff,#9eb3ff);
+cursor:pointer;
+transition:.25s;
+}
+
+.register-btn:hover{
+transform:translateY(-3px);
+box-shadow:0 20px 50px rgba(90,120,255,.4);
+}
+
+.register-btn:active{
+transform:translateY(0);
+}
+
+.footer{
+margin-top:22px;
+font-size:12px;
+text-align:center;
+color:#9aa4bd;
+}
+
+/* ====== 错误/成功提示 ====== */
+.error-msg{
+background:#fef2f2;
+color:#dc2626;
+padding:12px 16px;
+border-radius:10px;
+margin-bottom:20px;
+font-size:13px;
+border:1px solid #fecaca;
+display:flex;
+align-items:center;
+gap:8px;
+animation:shake 0.4s ease-in-out;
+}
+
+.success-msg{
+background:#f0fdf4;
+color:#16a34a;
+padding:12px 16px;
+border-radius:10px;
+margin-bottom:20px;
+font-size:13px;
+border:1px solid #bbf7d0;
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+@keyframes shake{
+0%,100%{transform:translateX(0)}
+25%{transform:translateX(-5px)}
+75%{transform:translateX(5px)}
+}
+
+/* ====== 链接悬停高亮 ====== */
+.link-highlight{
+transition:.25s;
+}
+
+.link-highlight:hover{
+color:#5b7cff !important;
+text-decoration:underline !important;
+}
+
+/* ====== 浮动粒子 ====== */
+.particle{
+position:absolute;
+width:5px;
+height:5px;
+background:#8fa6ff;
+border-radius:50%;
+opacity:.6;
+animation:float 12s linear infinite;
+z-index:1;
+}
+
+@keyframes float{
+0%{transform:translateY(0)}
+100%{transform:translateY(-110vh)}
+}
+
+@media (max-width:1100px){
+.layout{width:92%;justify-content:center}
+.brand{display:none}
+}
+
+</style>
+</head>
+
+<body>
+
+<canvas id="network"></canvas>
+
+<div class="grid"></div>
+
+<!-- 粒子 -->
+<div class="particle" style="left:10%;animation-duration:9s"></div>
+<div class="particle" style="left:22%;animation-duration:14s"></div>
+<div class="particle" style="left:38%;animation-duration:11s"></div>
+<div class="particle" style="left:60%;animation-duration:16s"></div>
+<div class="particle" style="left:82%;animation-duration:10s"></div>
+
+<div class="layout">
+
+<div class="brand">
+<h1>社会舆情分析系统</h1>
+<p>
+面向政府与企业的智能舆情监测平台，整合全网热点事件、关键词监测、情感分析与趋势预测。
+支持实时数据采集、多维可视化与风险预警，为舆情研判与决策提供数据支撑。
+</p>
+
+<div class="metrics">
+
+<div class="metric">
+<span>今日采集数据</span>
+<strong>12,846</strong>
+</div>
+
+<div class="metric">
+<span>风险预警</span>
+<strong>23</strong>
+</div>
+
+<div class="metric">
+<span>监测关键词</span>
+<strong>156</strong>
+</div>
+
+</div>
+</div>
+
+<div class="register-panel">
+
+<div class="panel-title">创建账户</div>
+<div class="panel-sub">Join Our Platform</div>
+
+{% if error %}
+<div class="error-msg">
+<i class="fas fa-exclamation-circle"></i>
+<span>{{ error }}</span>
+</div>
+{% endif %}
+
+{% if success %}
+<div class="success-msg">
+<i class="fas fa-check-circle"></i>
+<span>注册成功！请 <a href="{{ url_for('auth.login') }}" class="link-highlight">立即登录</a></span>
+</div>
+{% else %}
+<form method="POST">
+
+<div class="input-group">
+<label>用户名</label>
+<input type="text" name="username" placeholder="请设置用户名" required />
+</div>
+
+<div class="input-group">
+<label>密码</label>
+<input type="password" name="password" placeholder="请设置密码（至少6位）" required />
+</div>
+
+<div class="input-group">
+<label>确认密码</label>
+<input type="password" name="confirm_password" placeholder="请再次输入密码" required />
+</div>
+
+<div class="input-group">
+<label>密保问题</label>
+<select name="security_question" required>
+<option value="">请选择一个密保问题</option>
+{% for question in questions %}
+<option value="{{ question }}">{{ question }}</option>
+{% endfor %}
+</select>
+</div>
+
+<div class="input-group">
+<label>密保答案</label>
+<input type="text" name="security_answer" placeholder="请输入密保答案" required />
+</div>
+
+<button type="submit" class="register-btn">注 册</button>
+
+</form>
+{% endif %}
+
+<div class="footer">
+<span>已有账户？</span>
+<a href="{{ url_for('auth.login') }}" class="link-highlight" style="color:#9aa4bd;text-decoration:none;">立即登录</a>
+</div>
+
+</div>
+
+</div>
+
+<script>
+// 粒子网络动画
+const canvas=document.getElementById('network')
+const ctx=canvas.getContext('2d')
+let w=canvas.width=window.innerWidth
+let h=canvas.height=window.innerHeight
+
+let particles=[]
+
+for(let i=0;i<80;i++){
+particles.push({
+x:Math.random()*w,
+y:Math.random()*h,
+vx:(Math.random()-.5)*0.5,
+vy:(Math.random()-.5)*0.5
+})
+}
+
+function draw(){
+ctx.clearRect(0,0,w,h)
+
+particles.forEach(p=>{
+p.x+=p.vx
+p.y+=p.vy
+
+if(p.x<0||p.x>w)p.vx*=-1
+if(p.y<0||p.y>h)p.vy*=-1
+
+ctx.beginPath()
+ctx.arc(p.x,p.y,2,0,Math.PI*2)
+ctx.fillStyle="#9fb3ff"
+ctx.fill()
+
+particles.forEach(p2=>{
+let dx=p.x-p2.x
+let dy=p.y-p2.y
+let dist=Math.sqrt(dx*dx+dy*dy)
+
+if(dist<120){
+ctx.beginPath()
+ctx.moveTo(p.x,p.y)
+ctx.lineTo(p2.x,p2.y)
+ctx.strokeStyle="rgba(150,170,255,0.15)"
+ctx.stroke()
+}
+})
+})
+
+requestAnimationFrame(draw)
+}
+
+draw()
+
+window.onresize=()=>{
+w=canvas.width=window.innerWidth
+h=canvas.height=window.innerHeight
+}
+</script>
+
+</body>
+</html>

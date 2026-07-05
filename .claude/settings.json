@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(python -m py_compile:*)",
+      "Bash(ls:*)",
+      "Bash(pip install:*)",
+      "Bash(test:*)",
+      "Read(//e/kafka/kafka_2.13-3.9.1/bin/windows/**)",
+      "Read(//e/kafka/kafka_2.13-3.9.1/config/**)",
+      "Read(//e/kafka/kafka_2.13-3.9.1/**)",
+      "Bash(python3 -c:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(d:/PythonProject_one/.venv1/Scripts/python.exe -c:*)",
+      "Bash(d:/PythonProject_one/.venv1/Scripts/python.exe:*)",
+      "Bash(D:/anaconda/python.exe:*)",
+      "Bash(python:*)",
+      "Bash(/d/PythonProject_one/.venv1/Scripts/python.exe:*)",
+      "Read(//d//**)"
+    ],
+    "additionalDirectories": [
+      "D:\\PythonProject_one\\train_models"
+    ]
+  }
+}

@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>关键词深度分析 | 舆情分析系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.bootcdn.net/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #4A6CF7;
+            --primary-light: #6B8AFF;
+            --primary-dark: #3A5BD9;
+            --success-color: #10B981;
+            --warning-color: #F59E0B;
+            --danger-color: #EF4444;
+            --info-color: #3B82F6;
+            --purple-color: #8B5CF6;
+            --dark-bg: #F8F9FA;
+            --card-bg: #F8F9FA;
+            --light-bg: #FFFFFF;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+            --border-color: #DEE2E6;
+            --sidebar-width: 280px;
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            --radius: 12px;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            --shadow-hover: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--dark-bg);
+            color: var(--text-secondary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        /* 左侧导航栏 */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--card-bg);
+            border-right: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .nav-menu {
+            list-style: none;
+            margin-top: 3rem;
+            gap: 0.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        .nav-link i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* 顶部栏 */
+        .topbar {
+            margin-left: var(--sidebar-width);
+            background: var(--card-bg);
+            padding: 0.75rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 6px 12px 6px 6px;
+            border-radius: 30px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.15);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .user-profile .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-profile .user-name {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+
+        .user-profile .user-role {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .user-profile .dropdown-arrow {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-left: 4px;
+            transition: var(--transition);
+        }
+
+        .user-profile:hover .dropdown-arrow {
+            color: var(--primary-color);
+        }
+
+        #userDropdown {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: calc(100% + 8px);
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+            min-width: 240px;
+            z-index: 9999;
+            overflow: hidden;
+            animation: dropdownIn 0.2s ease;
+        }
+
+        @keyframes dropdownIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .dropdown-header {
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, rgba(74, 108, 247, 0.08), rgba(139, 92, 246, 0.08));
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .dropdown-header .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .dropdown-header .user-email {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .dropdown-section {
+            padding: 0.5rem 0;
+        }
+
+        .dropdown-section-title {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        #userDropdown a {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        #userDropdown a:hover {
+            background: rgba(74, 108, 247, 0.05);
+            color: var(--primary-color);
+        }
+
+        #userDropdown a i {
+            color: var(--primary-color);
+            width: 18px;
+            text-align: center;
+        }
+
+        #userDropdown .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 0.5rem 0;
+        }
+
+        #userDropdown a.logout-btn {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn i {
+            color: var(--danger-color);
+        }
+
+        #userDropdown a.logout-btn:hover {
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        /* 筛选控制区 */
+        .filter-section {
+            margin-left: var(--sidebar-width);
+            background: var(--card-bg);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .filter-grid {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .filter-select {
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            min-width: 140px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .filter-btn {
+            padding: 0.4rem 0.75rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-btn:first-child { border-radius: 6px 0 0 6px; }
+        .filter-btn:last-child { border-radius: 0 6px 6px 0; }
+        .filter-btn:hover:not(.active) {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        .filter-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .analyze-btn {
+            padding: 0.5rem 1rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+            margin-left: auto;
+        }
+
+        .analyze-btn:hover { background: var(--primary-dark); }
+        .analyze-btn i.spin { animation: spin 1s linear infinite; }
+
+        /* 分类Tab样式 */
+        .category-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .category-tab {
+            padding: 0.35rem 0.75rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+            border-radius: 20px;
+        }
+
+        .category-tab:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .category-tab.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        /* 内联分类Tab（热度排行榜旁边） */
+        .category-tabs-inline {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+        }
+
+        .category-tabs-inline .category-tab {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        /* 热度排行榜和热词榜区域 */
+        .insight-section {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .insight-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .insight-card.heat-rank {
+            flex: 3;
+        }
+
+        .insight-card.hot-words {
+            flex: 2;
+        }
+
+        .insight-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(74, 108, 247, 0.05), rgba(139, 92, 246, 0.05));
+        }
+
+        .insight-header h5 {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .insight-header h5 i {
+            color: var(--primary-color);
+        }
+
+        .category-badge {
+            padding: 0.25rem 0.6rem;
+            background: var(--primary-color);
+            color: white;
+            font-size: 0.75rem;
+            border-radius: 12px;
+        }
+
+        .time-selector {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .time-selector button {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .time-selector button:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+
+        .time-selector button:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .time-selector button:hover:not(.active) {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .time-selector button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .insight-body {
+            padding: 0.75rem;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        /* 热度排行榜项 */
+        .rank-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .rank-item:hover {
+            background: rgba(74, 108, 247, 0.05);
+        }
+
+        .rank-number {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .rank-number.top3 {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+        }
+
+        .rank-number.normal {
+            background: var(--dark-bg);
+            color: var(--text-secondary);
+        }
+
+        .rank-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .rank-title {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rank-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .rank-heat {
+            font-weight: 600;
+            color: var(--danger-color);
+        }
+
+        /* 热词列表 */
+        .word-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
+            background: rgba(74, 108, 247, 0.03);
+            border-radius: 6px;
+        }
+
+        .word-tag {
+            padding: 0.25rem 0.5rem;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .word-tag:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        .word-tag.large {
+            font-size: 1rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary-color), var(--purple-color));
+            color: white;
+            border: none;
+        }
+
+        .word-tag.medium {
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: rgba(74, 108, 247, 0.1);
+            border-color: rgba(74, 108, 247, 0.3);
+        }
+
+        .word-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .word-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.35rem 0.5rem;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .word-name {
+            color: var(--text-primary);
+        }
+
+        .word-weight {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* 主内容区 */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* 页签导航 */
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            background: var(--card-bg);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.65rem 1rem;
+            border: none;
+            background: transparent;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .tab-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .tab-btn:hover:not(.active) {
+            background: var(--dark-bg);
+        }
+
+        /* 页签内容 */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active { display: block; }
+
+        /* 模块卡片 */
+        .module-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .module-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .module-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .module-body {
+            padding: 1rem 1.25rem;
+        }
+
+        /* 页签1 */
+        .chart-container { height: 280px; }
+        #timelineChart { width: 100%; height: 280px; }
+
+        .burst-cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+
+        .burst-card {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.65rem;
+            background: var(--dark-bg);
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .burst-card:hover {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .burst-card.longtail:hover {
+            background: var(--success-color);
+        }
+
+        .burst-card .badge {
+            font-size: 0.65rem;
+            padding: 0.1rem 0.35rem;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        .burst-card.longtail .badge {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .burst-point-btn {
+            padding: 0.35rem 0.65rem;
+            border: 1px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .burst-point-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        /* 页签2 */
+        .network-drivers {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .network-container { height: 380px; }
+        #cooccurrenceChart { width: 100%; height: 380px; }
+
+        .drivers-container { height: 380px; }
+        #driversChart { width: 100%; height: 380px; }
+
+        /* 详情弹窗 */
+        .detail-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .detail-modal.show { display: flex; }
+
+        .detail-content {
+            background: white;
+            border-radius: var(--radius);
+            width: 90%;
+            max-width: 550px;
+            max-height: 75vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-header {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+
+        .detail-body {
+            padding: 1rem 1.25rem;
+            overflow-y: auto;
+            max-height: 55vh;
+        }
+
+        .detail-sentence {
+            padding: 0.65rem;
+            background: var(--dark-bg);
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        /* 页签3 */
+        .sentiment-trend-container { height: 220px; }
+        #sentimentTrendChart { width: 100%; height: 220px; }
+
+        .opinions-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .opinion-filter {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-chip {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .filter-chip:hover:not(.active) {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .filter-chip.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
+        .opinions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .opinion-item {
+            padding: 0.85rem;
+            background: var(--dark-bg);
+            border-radius: 8px;
+        }
+
+        .opinion-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.4rem;
+        }
+
+        .sentiment-tag {
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .sentiment-tag.positive { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+        .sentiment-tag.negative { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+        .sentiment-tag.neutral { background: rgba(107, 114, 128, 0.1); color: var(--text-secondary); }
+
+        .opinion-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .opinion-content {
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        /* 底部工具栏 */
+        .bottom-toolbar {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(calc(-50% + var(--sidebar-width)/2));
+            background: var(--card-bg);
+            padding: 0.6rem 1.25rem;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            z-index: 100;
+        }
+
+        .toolbar-btn {
+            padding: 0.4rem 0.85rem;
+            border: none;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: var(--transition);
+        }
+
+        .toolbar-btn.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .toolbar-btn.primary:hover { background: var(--primary-dark); }
+
+        .toolbar-btn.secondary {
+            background: var(--dark-bg);
+            color: var(--text-primary);
+        }
+
+        /* 加载和空状态 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state i {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
+        }
+
+        /* 内联样式替代类 */
+        .padding-sm { padding: 0.5rem; }
+        .padding-md { padding: 1rem; }
+        .padding-lg { padding: 1.5rem; }
+        .font-sm { font-size: 0.8rem; }
+        .font-xs { font-size: 0.7rem; }
+        .flex-wrap-center {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .flex-col-gap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        /* 提示消息 */
+        .toast {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.65rem 0.85rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow-hover);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 3000;
+            animation: slideIn 0.3s ease;
+        }
+
+        .toast.success { border-left: 4px solid var(--success-color); }
+        .toast.error { border-left: 4px solid var(--danger-color); }
+        .toast.info { border-left: 4px solid var(--info-color); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* 响应式 */
+        @media (max-width: 1200px) {
+            .network-drivers { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .topbar, .filter-section, .main-content { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- 左侧导航栏 -->
+    <aside class="sidebar">
+        <a href="/" class="logo">
+            <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+            <span>舆情分析</span>
+        </a>
+
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.dashboard', _external=False) }}" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i><span>首页</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('visualization.index') }}" class="nav-link">
+                    <i class="fas fa-map-location-dot"></i><span>舆情可视化</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('dashboard.hot_event_list') }}" class="nav-link">
+                    <i class="fas fa-fire"></i><span>热点事件</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('keywords.index') }}" class="nav-link active">
+                    <i class="fas fa-tags"></i><span>关键词分析</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ url_for('enhanced_visualization.ml_dashboard') }}" class="nav-link">
+                    <i class="fas fa-brain"></i><span>智能分析</span>
+                </a>
+            </li>
+            {% if session.role == 'admin' %}
+            <li class="nav-item">
+                <a href="{{ url_for('auth.profile_info') }}" class="nav-link">
+                    <i class="fas fa-user"></i><span>个人中心</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </aside>
+
+    <!-- 顶部栏 -->
+    <div class="topbar">
+        <div class="page-title">关键词深度分析</div>
+        <div class="user-menu">
+            <div class="user-profile" onclick="toggleUserMenu()">
+                <div class="avatar">{{ username[0] if username else 'U' }}</div>
+                <div class="user-info">
+                    <span class="user-name">{{ username or '用户' }}</span>
+                    <span class="user-role">{{ '管理员' if session.role == 'admin' else '普通用户' }}</span>
+                </div>
+                <i class="fas fa-chevron-down dropdown-arrow"></i>
+            </div>
+
+            <div id="userDropdown">
+                <div class="dropdown-header">
+                    <div class="user-name">{{ username or '用户' }}</div>
+                    <div class="user-email">已登录</div>
+                </div>
+                <div class="dropdown-section">
+                    <div class="dropdown-section-title">快捷操作</div>
+                    <a href="{{ url_for('auth.profile_info') }}"><i class="fas fa-user"></i><span>个人中心</span></a>
+                    <a href="{{ url_for('auth.profile_favorites') }}"><i class="fas fa-star"></i><span>我的收藏</span></a>
+                    <a href="{{ url_for('csv_export.index') }}"><i class="fas fa-file-export"></i><span>数据导出</span></a>
+                    {% if session.role == 'admin' %}
+                    <a href="{{ url_for('auth.settings') }}"><i class="fas fa-cog"></i><span>系统设置</span></a>
+                    {% endif %}
+                </div>
+                <div class="divider"></div>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn"><i class="fas fa-sign-out-alt"></i><span>退出登录</span></a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <!-- 热度洞察区：排行榜和热词榜 -->
+        <div class="insight-section">
+            <!-- 热度排行榜 -->
+            <div class="insight-card heat-rank">
+                <div class="insight-header">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <h5 style="margin: 0;"><i class="fas fa-fire"></i> 热度排行榜</h5>
+                        <div class="category-tabs-inline">
+                            <button class="category-tab active" data-category="all">全部</button>
+                            <button class="category-tab" data-category="社会民生">社会民生</button>
+                            <button class="category-tab" data-category="娱乐明星">娱乐明星</button>
+                            <button class="category-tab" data-category="科技互联网">科技互联网</button>
+                            <button class="category-tab" data-category="财经金融">财经金融</button>
+                            <button class="category-tab" data-category="体育赛事">体育赛事</button>
+                            <button class="category-tab" data-category="政治时事">政治时事</button>
+                            <button class="category-tab" data-category="文化旅游">文化旅游</button>
+                            <button class="category-tab" data-category="健康养生">健康养生</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="insight-body" id="heatRankList">
+                    <div class="empty-state" style="padding: 1rem;">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 热词榜 -->
+            <div class="insight-card hot-words">
+                <div class="insight-header">
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <h5><i class="fas fa-tags"></i> 热词榜</h5>
+                        <div class="time-selector">
+                            <button class="active" data-period="week">本周</button>
+                            <button data-period="month">本月</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="insight-body">
+                    <div class="word-cloud" id="wordCloud">
+                        <div class="empty-state" style="padding: 0.5rem; font-size: 0.8rem;">
+                            <i class="fas fa-spinner fa-spin"></i> 加载中...
+                        </div>
+                    </div>
+                    <div class="word-list" id="hotWordsList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页签导航 -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="evolution">
+                <i class="fas fa-chart-line"></i> 演化与爆发
+            </button>
+            <button class="tab-btn" data-tab="association">
+                <i class="fas fa-project-diagram"></i> 关联与归因
+            </button>
+            <button class="tab-btn" data-tab="sentiment">
+                <i class="fas fa-heart"></i> 情感与观点
+            </button>
+        </div>
+
+        <!-- 页签1：演化与爆发 -->
+        <div class="tab-content active" id="tab-evolution">
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title"><i class="fas fa-chart-area"></i> 关键词热度演化</div>
+                    <button class="burst-point-btn" onclick="detectBurstPoints()">
+                        <i class="fas fa-bolt"></i> 标记转折点
+                    </button>
+                </div>
+                <div class="module-body">
+                    <div class="chart-container">
+                        <div id="timelineChart">
+                            <div class="empty-state"><i class="fas fa-chart-line"></i><p>进行关键词分析中</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title"><i class="fas fa-bullhorn"></i> 爆发词与长尾词</div>
+                </div>
+                <div class="module-body">
+                    <div style="margin-bottom: 0.4rem; font-size: 0.8rem; color: var(--text-secondary);">
+                        <i class="fas fa-arrow-up" style="color: var(--danger-color);"></i> 爆发词（波动大）
+                    </div>
+                    <div class="burst-cards" id="burstCards">
+                        <div class="empty-state" style="padding: 0.5rem;">暂无数据</div>
+                    </div>
+                    <div style="margin: 0.75rem 0 0.4rem; font-size: 0.8rem; color: var(--text-secondary);">
+                        <i class="fas fa-leaf" style="color: var(--success-color);"></i> 长尾词（稳定）
+                    </div>
+                    <div class="burst-cards" id="longtailCards">
+                        <div class="empty-state" style="padding: 0.5rem;">暂无数据</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页签2：关联与归因 -->
+        <div class="tab-content" id="tab-association">
+            <div class="network-drivers">
+                <div class="module-card">
+                    <div class="module-header">
+                        <div class="module-title"><i class="fas fa-project-diagram"></i> 关键词共现网络</div>
+                    </div>
+                    <div class="module-body">
+                        <div class="network-container">
+                            <div id="cooccurrenceChart">
+                                <div class="empty-state"><i class="fas fa-project-diagram"></i><p>请先选择关键词</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="module-card">
+                    <div class="module-header">
+                        <div class="module-title"><i class="fas fa-tachometer-alt"></i> 驱动因素分析</div>
+                    </div>
+                    <div class="module-body">
+                        <div class="drivers-container">
+                            <div id="driversChart">
+                                <div class="empty-state"><i class="fas fa-chart-bar"></i><p>点击网络图节点查看驱动因素</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页签3：情感与观点 -->
+        <div class="tab-content" id="tab-sentiment">
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title"><i class="fas fa-chart-line"></i> 情感趋势变化</div>
+                </div>
+                <div class="module-body">
+                    <div class="sentiment-trend-container">
+                        <div id="sentimentTrendChart">
+                            <div class="empty-state"><i class="fas fa-chart-line"></i><p>请先选择关键词</p></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="module-card">
+                <div class="module-header">
+                    <div class="module-title"><i class="fas fa-comments"></i> 典型观点抽样</div>
+                </div>
+                <div class="module-body">
+                    <div class="opinions-header">
+                        <div class="opinion-filter">
+                            <span class="filter-chip active" data-filter="all">全部</span>
+                            <span class="filter-chip" data-filter="positive">正面</span>
+                            <span class="filter-chip" data-filter="negative">负面</span>
+                        </div>
+                    </div>
+                    <div class="opinions-list" id="opinionsList">
+                        <div class="empty-state"><i class="fas fa-comments"></i><p>请先选择关键词</p></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 驱动因素详情弹窗 -->
+    <div class="detail-modal" id="detailModal">
+        <div class="detail-content">
+            <div class="detail-header">
+                <span id="detailTitle">驱动因素详情</span>
+                <button onclick="closeDetail()" style="border: none; background: none; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            </div>
+            <div class="detail-body" id="detailBody"></div>
+        </div>
+    </div>
+
+    <!-- Toast消息容器 -->
+    <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999;"></div>
+
+    	<script>
+    // 工具函数
+    const utils = {
+        // 安全的API调用
+        async fetchJSON(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    credentials: 'same-origin',
+                    ...options
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error(`API请求失败: ${url}`, error);
+                throw error;
+            }
+        },
+
+        // 显示加载状态
+        showLoading(containerId, message = '加载中...') {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <p>${this.escapeHtml(message)}</p>
+                    </div>
+                `;
+            }
+        },
+
+        // 显示空状态
+        showEmptyState(containerId, message = '暂无数据') {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <p>${this.escapeHtml(message)}</p>
+                    </div>
+                `;
+            }
+        },
+
+        // 显示错误状态
+        showErrorState(containerId, error) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>${this.escapeHtml(error.message || '加载失败')}</p>
+                    </div>
+                `;
+            }
+        },
+
+        // HTML转义
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
+
+        // 数字格式化
+        formatNumber(num) {
+            if (!num) return '0';
+            if (num >= 10000) {
+                return (num / 10000).toFixed(1) + '万';
+            }
+            return num.toString();
+        },
+
+        // 设置活动按钮
+        setActiveButton(selector, activeElement) {
+            document.querySelectorAll(selector).forEach(el => el.classList.remove('active'));
+            if (activeElement) {
+                activeElement.classList.add('active');
+            }
+        },
+
+        // 防抖函数
+        debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    };
+
+    // 全局辅助函数
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer') || createToastContainer();
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const iconMap = {
+            'success': 'check-circle',
+            'error': 'exclamation-circle',
+            'info': 'info-circle',
+            'warning': 'exclamation-triangle'
+        };
+        toast.innerHTML = `<i class="fas fa-${iconMap[type] || 'info-circle'}"></i> ${utils.escapeHtml(message)}`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function createToastContainer() {
+        const div = document.createElement('div');
+        div.id = 'toastContainer';
+        div.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999;';
+        document.body.appendChild(div);
+        return div;
+    }
+
+    // 全局函数别名 - 调用 utils 中的方法（解决 escapeHtml/formatNumber 未定义问题）
+    function escapeHtml(text) {
+        return utils.escapeHtml(text);
+    }
+
+    function formatNumber(num) {
+        return utils.formatNumber(num);
+    }
+
+    let state = {
+	        selectedKeyword: null,
+	        days: 7,
+	        keywordCount: 5,
+	        keywordsData: [],
+	        currentSentimentFilter: 'all',
+	        initialized: false
+	    };
+	    document.addEventListener('DOMContentLoaded', function() {
+	        // 全局错误处理
+        window.addEventListener('error', function(event) {
+            console.error('全局错误:', event.error);
+            showToast(`发生错误: ${event.error?.message || '未知错误'}`, 'error');
+        });
+
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('未处理的Promise拒绝:', event.reason);
+            showToast(`请求失败: ${event.reason?.message || '未知错误'}`, 'error');
+        });
+
+        initEventListeners();
+	        // 延迟加载，确保DOM完全就绪
+	        setTimeout(() => {
+	            loadKeywordEvolution();
+	        }, 100);
+	    });
+	    // 修复：加载关键词演化数据
+	    async function loadKeywordEvolution() {
+	        const btn = document.querySelector('.analyze-btn i');
+	        if (btn) {
+	            btn.classList.add('spin');
+	        }
+	        try {
+	            // 加载数据
+	            const resp = await fetch(`/keywords/api/keywords/evolution?days=${state.days}&keyword_count=${state.keywordCount}`);
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+	            }
+	            const data = await resp.json();
+	            console.log('[DEBUG] API返回数据:', data);
+	            if (data.error) {
+	                showToast('错误: ' + data.error, 'error');
+	                resetUI();
+	                return;
+	            }
+	            if (data.keywords && data.keywords.length > 0) {
+	                state.keywordsData = data.keywords;
+	                state.selectedKeyword = data.keywords[0].keyword;
+	                state.initialized = true;
+	                const sourceText = data.keyword_source === 'hot_words' ? '热词榜' : '内容提取';
+	                // 按顺序渲染各个组件
+	                renderTimeline(data.timeline || [], data.keywords.map(k => k.keyword));
+	                renderBurstKeywords(data.burst_keywords || [], data.longtail_keywords || []);
+	                // 延迟加载其他组件，确保主图表已渲染
+	                setTimeout(() => {
+	                    renderSentimentTrend(data.sentiment_trend || []);
+	                    loadCooccurrence();
+	                    loadDrivers();
+	                    loadOpinions();
+	                }, 300);
+	                showToast(`已从${sourceText}加载 ${data.keywords.length} 个关键词，${data.total_texts || 0} 条文本数据`, 'success');
+	            } else {
+	                const message = data.message || '暂无数据';
+	                showToast(message, 'info');
+	                resetUI();
+	            }
+	        } catch (e) {
+	            console.error('加载关键词演化数据失败:', e);
+	            showToast('加载数据失败: ' + e.message, 'error');
+	            resetUI();
+	        } finally {
+	            if (btn) {
+	                btn.classList.remove('spin');
+	            }
+	        }
+	    }
+	    // 新增：重置UI状态
+	    function resetUI() {
+	        const emptyMessage = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无数据</p></div>';
+	        document.getElementById('timelineChart').innerHTML = emptyMessage;
+	        document.getElementById('burstCards').innerHTML = emptyMessage;
+	        document.getElementById('longtailCards').innerHTML = emptyMessage;
+	        document.getElementById('sentimentTrendChart').innerHTML = emptyMessage;
+	        document.getElementById('cooccurrenceChart').innerHTML = emptyMessage;
+	        document.getElementById('driversChart').innerHTML = emptyMessage;
+	        document.getElementById('opinionsList').innerHTML = emptyMessage;
+	    }
+	    // 修复：渲染时间线（处理空数据）
+	    function renderTimeline(timeline, keywords) {
+	        const container = document.getElementById('timelineChart');
+	        if (!timeline || timeline.length === 0) {
+	            container.innerHTML = '<div class="empty-state"><i class="fas fa-chart-line"></i><p>暂无时间线数据</p></div>';
+	            return;
+	        }
+	        if (!keywords || keywords.length === 0) {
+	            container.innerHTML = '<div class="empty-state"><i class="fas fa-tags"></i><p>暂无关键词数据</p></div>';
+	            return;
+	        }
+	        // 清空容器
+	        container.innerHTML = '';
+	        const chart = echarts.init(container);
+	        const series = keywords.slice(0, 8).map((keyword, index) => ({
+	            name: keyword,
+	            type: 'line',
+	            smooth: true,
+	            data: timeline.map(t => t[keyword] || 0)
+	        }));
+	        const option = {
+	            tooltip: {
+	                trigger: 'axis',
+	                axisPointer: {
+	                    type: 'cross'
+	                }
+	            },
+	            legend: {
+	                data: keywords.slice(0, 8),
+	                bottom: 0,
+	                type: 'scroll'
+	            },
+	            grid: {
+	                left: '3%',
+	                right: '4%',
+	                bottom: '15%',
+	                top: '10%',
+	                containLabel: true
+	            },
+	            xAxis: {
+	                type: 'category',
+	                boundaryGap: false,
+	                data: timeline.map(t => t.date)
+	            },
+	            yAxis: {
+	                type: 'value',
+	                name: '出现次数'
+	            },
+	            series: series
+	        };
+	        chart.setOption(option);
+	        window.addEventListener('resize', () => chart.resize());
+	    }
+	    // 修复：从热词榜点击分析某个关键词
+	    async function analyzeHotWord(keyword) {
+	        if (!keyword) {
+	            showToast('关键词无效', 'error');
+	            return;
+	        }
+	        state.selectedKeyword = keyword;
+	        showToast(`正在分析关键词: ${keyword}`, 'info');
+	        try {
+	            // 并行加载所有数据
+	            await Promise.all([
+	                loadTimeline(),
+	                loadCooccurrence(),
+	                loadDrivers(),
+	                loadSentimentTrend(),
+	                loadOpinions()
+	            ]);
+	            showToast(`已切换到关键词: ${keyword} 的详细分析`, 'success');
+	        } catch (error) {
+	            console.error('加载关键词分析失败:', error);
+	            showToast('加载分析失败: ' + error.message, 'error');
+	        }
+	    }
+	    // 修复：加载时间线
+	    async function loadTimeline() {
+	        if (!state.selectedKeyword) {
+	            console.warn('未选择关键词，跳过加载时间线');
+	            return;
+	        }
+	        const container = document.getElementById('timelineChart');
+	        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>';
+	        try {
+	            const url = `/keywords/api/keywords/timeline?keyword=${encodeURIComponent(state.selectedKeyword)}&days=${state.days}`;
+	            const resp = await fetch(url);
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}`);
+	            }
+	            const data = await resp.json();
+	            renderSingleTimeline(data.timeline || []);
+	        } catch (e) {
+	            console.error('加载时间线失败:', e);
+	            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div>';
+	        }
+	    }
+	    // 修复：加载热度排行榜
+	    async function loadHeatRank(category) {
+	        const container = document.getElementById('heatRankList');
+	        container.innerHTML = '<div class="empty-state" style="padding: 1rem;"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>';
+	        try {
+	            const resp = await fetch(`/keywords/api/heat-rank?category=${encodeURIComponent(category)}&limit=15`, {
+	                credentials: 'same-origin'
+	            });
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}`);
+	            }
+	            const data = await resp.json();
+	            if (data.error) {
+	                container.innerHTML = `<div class="empty-state" style="padding: 1rem;"><i class="fas fa-exclamation-triangle"></i><p>错误: ${data.error}</p></div>`;
+	                return;
+	            }
+	            const events = data.events || [];
+	            if (events.length === 0) {
+	                container.innerHTML = '<div class="empty-state" style="padding: 1rem;"><i class="fas fa-inbox"></i><p>暂无数据</p></div>';
+	                return;
+	            }
+	            let html = '';
+	            events.forEach((event, index) => {
+	                const rankClass = index < 3 ? 'top3' : 'normal';
+	                html += `
+	                    <div class="rank-item" onclick="viewEventDetail(${event.id})" style="cursor: pointer;">
+	                        <span class="rank-number ${rankClass}">${index + 1}</span>
+	                        <div class="rank-content">
+	                            <div class="rank-title" title="${escapeHtml(event.title)}">${escapeHtml(event.title)}</div>
+	                            <div class="rank-meta">
+	                                <span class="rank-heat"><i class="fas fa-fire"></i> ${formatNumber(event.heat)}</span>
+	                                <span>${event.crawl_time || ''}</span>
+	                            </div>
+	                        </div>
+	                    </div>
+	                `;
+	            });
+	            container.innerHTML = html;
+	        } catch (e) {
+	            console.error('加载热度排行榜失败:', e);
+	            container.innerHTML = `<div class="empty-state" style="padding: 1rem;"><i class="fas fa-exclamation-triangle"></i><p>加载失败: ${e.message}</p></div>`;
+	        }
+	    }
+	    // 修复：加载热词榜
+	    async function loadHotWords(period) {
+	        const cloudContainer = document.getElementById('wordCloud');
+	        const listContainer = document.getElementById('hotWordsList');
+	        cloudContainer.innerHTML = '<div class="empty-state" style="padding: 0.5rem; font-size: 0.8rem;"><i class="fas fa-spinner fa-spin"></i> 加载中...</div>';
+	        listContainer.innerHTML = '';
+	        try {
+	            const resp = await fetch(`/keywords/api/hot-words?period=${encodeURIComponent(period)}&top_k=20`, {
+	                credentials: 'same-origin'
+	            });
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}`);
+	            }
+	            const data = await resp.json();
+	            if (data.error) {
+	                cloudContainer.innerHTML = `<div class="empty-state" style="padding: 0.5rem; font-size: 0.8rem;">错误: ${data.error}</div>`;
+	                return;
+	            }
+	            const words = data.words || [];
+	            if (words.length === 0) {
+	                cloudContainer.innerHTML = '<div class="empty-state" style="padding: 0.5rem; font-size: 0.8rem;"><i class="fas fa-inbox"></i> 暂无数据</div>';
+	                return;
+	            }
+	            let cloudHtml = '';
+	            words.slice(0, 10).forEach((item, index) => {
+	                const sizeClass = index < 3 ? 'large' : (index < 6 ? 'medium' : '');
+	                cloudHtml += `<span class="word-tag ${sizeClass}" onclick="goToHotword('${escapeHtml(item.word)}')" title="热度: ${(item.weight * 100).toFixed(1)}%&#10;点击查看热词详情" style="cursor:pointer;">${escapeHtml(item.word)}</span>`;
+	            });
+	            cloudContainer.innerHTML = cloudHtml;
+	            let listHtml = '';
+	            words.slice(0, 15).forEach((item, index) => {
+	                listHtml += `
+	                    <div class="word-item" onclick="goToHotword('${escapeHtml(item.word)}')" style="cursor:pointer;">
+	                        <span class="word-name">${index + 1}. ${escapeHtml(item.word)}</span>
+	                        <span class="word-weight">${(item.weight * 100).toFixed(1)}%</span>
+	                    </div>
+	                `;
+	            });
+	            listContainer.innerHTML = listHtml;
+	        } catch (e) {
+	            console.error('加载热词榜失败:', e);
+	            cloudContainer.innerHTML = `<div class="empty-state" style="padding: 0.5rem; font-size: 0.8rem;"><i class="fas fa-exclamation-triangle"></i> 加载失败</div>`;
+	        }
+	    }
+	    // 修复：加载共现网络
+	    async function loadCooccurrence() {
+	        if (!state.selectedKeyword) {
+	            return;
+	        }
+	        const container = document.getElementById('cooccurrenceChart');
+	        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>';
+	        try {
+	            const resp = await fetch(`/keywords/api/keywords/cooccurrence?keyword=${encodeURIComponent(state.selectedKeyword)}&days=${state.days}`);
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}`);
+	            }
+	            const data = await resp.json();
+	            renderCooccurrence(data);
+	        } catch (e) {
+	            console.error('加载共现网络失败:', e);
+	            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div>';
+	        }
+	    }
+	    // 修复：加载驱动因素
+	    async function loadDrivers() {
+	        if (!state.selectedKeyword) {
+	            return;
+	        }
+	        const container = document.getElementById('driversChart');
+	        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>';
+	        try {
+	            const url = `/keywords/api/keywords/drivers?keyword=${encodeURIComponent(state.selectedKeyword)}&days=${state.days}`;
+	            const resp = await fetch(url);
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}`);
+	            }
+	            const data = await resp.json();
+	            renderDrivers(data.drivers || []);
+	        } catch (e) {
+	            console.error('加载驱动因素失败:', e);
+	            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div>';
+	        }
+	    }
+	    // 修复：加载观点列表
+	    async function loadOpinions() {
+	        if (!state.selectedKeyword) {
+	            return;
+	        }
+	        const container = document.getElementById('opinionsList');
+	        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>';
+	        try {
+	            const url = `/keywords/api/keywords/opinions?keyword=${encodeURIComponent(state.selectedKeyword)}&days=${state.days}&limit=20`;
+	            const resp = await fetch(url);
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}`);
+	            }
+	            const data = await resp.json();
+	            renderOpinions(data.opinions || []);
+	        } catch (e) {
+	            console.error('加载观点失败:', e);
+	            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div>';
+	        }
+	    }
+	    // 修复：事件监听初始化
+	    function initEventListeners() {
+	        // 确保DOM元素存在
+	        document.querySelectorAll('.filter-btn').forEach(btn => {
+	            btn.addEventListener('click', function() {
+	                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+	                this.classList.add('active');
+	                state.days = parseInt(this.dataset.days);
+	                loadKeywordEvolution();
+	            });
+	        });
+	        document.querySelectorAll('.category-tab').forEach(tab => {
+	            tab.addEventListener('click', function() {
+	                document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+	                this.classList.add('active');
+	                const category = this.dataset.category;
+	                loadHeatRank(category);
+	            });
+	        });
+	        document.querySelectorAll('.time-selector button').forEach(btn => {
+	            btn.addEventListener('click', function() {
+	                document.querySelectorAll('.time-selector button').forEach(b => b.classList.remove('active'));
+	                this.classList.add('active');
+	                if (this.dataset.period) {
+	                    const period = this.dataset.period;
+	                    loadHotWords(period);
+	                }
+	            });
+	        });
+	        document.querySelectorAll('.tab-btn').forEach(btn => {
+	            btn.addEventListener('click', function() {
+	                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+	                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+	                this.classList.add('active');
+	                document.getElementById('tab-' + this.dataset.tab).classList.add('active');
+	                // Tab切换后重新调整图表尺寸
+	                setTimeout(() => {
+	                    window.dispatchEvent(new Event('resize'));
+	                }, 100);
+	            });
+	        });
+	        document.querySelectorAll('.filter-chip').forEach(chip => {
+	            chip.addEventListener('click', function() {
+	                document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+	                this.classList.add('active');
+	                state.currentSentimentFilter = this.dataset.filter;
+	                // 重新渲染观点列表
+	                if (state.selectedKeyword) {
+	                    loadOpinions();
+	                }
+	            });
+	        });
+	        // 初始加载热度排行榜和热词榜
+	        loadHeatRank('all');
+	        loadHotWords('week');
+	    }
+	    // 修复：检测转折点
+	    async function detectBurstPoints() {
+	        if (!state.selectedKeyword) {
+	            showToast('请先选择关键词', 'error');
+	            return;
+	        }
+	        try {
+	            showToast('正在检测转折点...', 'info');
+	            const resp = await fetch(`/keywords/api/keywords/burst_points?keyword=${encodeURIComponent(state.selectedKeyword)}&days=${state.days}&threshold=2.0`);
+	            if (!resp.ok) {
+	                throw new Error(`HTTP ${resp.status}`);
+	            }
+	            const data = await resp.json();
+	            const points = data.burst_points || [];
+	            if (points.length === 0) {
+	                showToast('未检测到明显的转折点', 'info');
+	            } else {
+	                showToast(`检测到 ${points.length} 个转折点`, 'success');
+	                highlightBurstPoints(points);
+	            }
+	        } catch (e) {
+	            console.error('检测转折点失败:', e);
+	            showToast('检测失败: ' + e.message, 'error');
+	        }
+	    }
+	    function viewEventDetail(eventId) {
+	        window.location.href = `/dashboard/event/detail/${eventId}`;
+	    }
+
+	    // 加载情感趋势
+	    async function loadSentimentTrend() {
+	        if (!state.selectedKeyword) return;
+	        const container = document.getElementById('sentimentTrendChart');
+	        container.innerHTML = '<div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>';
+	        try {
+	            const url = `/keywords/api/keywords/trend?keyword=${encodeURIComponent(state.selectedKeyword)}&days=${state.days}`;
+	            const resp = await fetch(url);
+	            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+	            const data = await resp.json();
+	            renderSentimentTrend(data.trend || []);
+	        } catch (e) {
+	            console.error('加载情感趋势失败:', e);
+	            container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div>';
+	        }
+	    }
+
+	    // 渲染爆发词和长尾词
+	    function renderBurstKeywords(burstKeywords, longtailKeywords) {
+	        const burstContainer = document.getElementById('burstCards');
+	        const longtailContainer = document.getElementById('longtailCards');
+
+	        if (burstKeywords && burstKeywords.length > 0) {
+	            burstContainer.innerHTML = burstKeywords.slice(0, 10).map(kw => `
+	                <div class="burst-card">
+	                    <i class="fas fa-arrow-up"></i> ${escapeHtml(kw.keyword)}
+	                    <span class="badge">CV:${kw.coefficient_variation?.toFixed(1) || 0}</span>
+	                </div>
+	            `).join('');
+	        } else {
+	            burstContainer.innerHTML = '<div class="empty-state" style="padding: 0.5rem;">暂无爆发词</div>';
+	        }
+
+	        if (longtailKeywords && longtailKeywords.length > 0) {
+	            longtailContainer.innerHTML = longtailKeywords.slice(0, 10).map(kw => `
+	                <div class="burst-card longtail">
+	                    <i class="fas fa-leaf"></i> ${escapeHtml(kw.keyword)}
+	                    <span class="badge">CV:${kw.coefficient_variation?.toFixed(1) || 0}</span>
+	                </div>
+	            `).join('');
+	        } else {
+	            longtailContainer.innerHTML = '<div class="empty-state" style="padding: 0.5rem;">暂无长尾词</div>';
+	        }
+	    }
+
+	    // 渲染情感趋势图表
+	    function renderSentimentTrend(trend) {
+	        const container = document.getElementById('sentimentTrendChart');
+	        if (!trend || trend.length === 0) {
+	            container.innerHTML = '<div class="empty-state">暂无情感趋势数据</div>';
+	            return;
+	        }
+
+	        const chart = echarts.init(container);
+	        const option = {
+	            tooltip: { trigger: 'axis' },
+	            legend: { data: ['正面', '负面', '中性'], bottom: 0 },
+	            grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+	            xAxis: { type: 'category', data: trend.map(t => t.date) },
+	            yAxis: { type: 'value' },
+	            series: [
+	                { name: '正面', type: 'line', data: trend.map(t => t.positive), itemStyle: { color: '#10B981' }, smooth: true },
+	                { name: '负面', type: 'line', data: trend.map(t => t.negative), itemStyle: { color: '#EF4444' }, smooth: true },
+	                { name: '中性', type: 'line', data: trend.map(t => t.neutral), itemStyle: { color: '#6B7280' }, smooth: true }
+	            ]
+	        };
+	        chart.setOption(option);
+	        window.addEventListener('resize', () => chart.resize());
+	    }
+
+	    // 渲染时间线（用于单个关键词）
+	    function renderSingleTimeline(timeline) {
+	        const container = document.getElementById('timelineChart');
+	        if (!timeline || timeline.length === 0) {
+	            container.innerHTML = '<div class="empty-state">暂无时间线数据</div>';
+	            return;
+	        }
+
+	        const chart = echarts.init(container);
+	        const option = {
+	            tooltip: { trigger: 'axis' },
+	            legend: { data: [state.selectedKeyword], bottom: 0 },
+	            grid: { left: '3%', right: '4%', bottom: '15%', top: '10%', containLabel: true },
+	            xAxis: { type: 'category', boundaryGap: false, data: timeline.map(t => t.date) },
+	            yAxis: { type: 'value' },
+	            series: [{
+	                name: state.selectedKeyword,
+	                type: 'line',
+	                smooth: true,
+	                areaStyle: { opacity: 0.3 },
+	                data: timeline.map(t => t[state.selectedKeyword] || 0)
+	            }]
+	        };
+
+	        chart.setOption(option);
+	        window.addEventListener('resize', () => chart.resize());
+	    }
+
+	    // 渲染共现网络
+	    function renderCooccurrence(data) {
+	        const container = document.getElementById('cooccurrenceChart');
+	        if (!data.nodes || data.nodes.length === 0) {
+	            container.innerHTML = '<div class="empty-state">暂无网络数据</div>';
+	            return;
+	        }
+
+	        const chart = echarts.init(container);
+
+	        // 所有节点
+	        const allNodes = data.nodes.slice(0, 15).map(n => ({
+	            name: n.name,
+	            value: n.value || 1,
+	            symbolSize: Math.sqrt(n.value || 1) * 2 + 10,
+	            itemStyle: { color: '#8B5CF6' },
+	            label: { show: true, fontSize: 11 }
+	        }));
+
+	        // 过滤连线
+	        const nodeNames = new Set(allNodes.map(n => n.name));
+	        const validLinks = (data.links || []).filter(l =>
+	            nodeNames.has(l.source) && nodeNames.has(l.target)
+	        ).slice(0, 20);
+
+	        const option = {
+	            tooltip: {},
+	            series: [{
+	                type: 'graph',
+	                layout: 'force',
+	                force: { repulsion: 200, edgeLength: 60 },
+	                roam: true,
+	                label: { show: true, position: 'right' },
+	                data: allNodes,
+	                links: validLinks,
+	                lineStyle: { color: '#ccc', curveness: 0.1 }
+	            }]
+	        };
+
+	        chart.setOption(option);
+	        window.addEventListener('resize', () => chart.resize());
+	    }
+
+	    // 渲染驱动因素（柱状图）
+	    function renderDrivers(drivers) {
+	        const container = document.getElementById('driversChart');
+	        if (!drivers || drivers.length === 0) {
+	            container.innerHTML = '<div class="empty-state">暂无驱动因素数据</div>';
+	            return;
+	        }
+
+	        const chart = echarts.init(container);
+	        const option = {
+	            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+	            legend: { data: ['正面', '负面'], bottom: 0 },
+	            grid: { left: '3%', right: '10%', bottom: '15%', top: '10%', containLabel: true },
+	            xAxis: { type: 'value' },
+	            yAxis: { type: 'category', data: drivers.map(d => d.keyword).reverse() },
+	            series: [
+	                { name: '正面', type: 'bar', stack: 'total', data: drivers.map(d => d.positive_count).reverse(), itemStyle: { color: '#10B981' } },
+	                { name: '负面', type: 'bar', stack: 'total', data: drivers.map(d => d.negative_count).reverse(), itemStyle: { color: '#EF4444' } }
+	            ]
+	        };
+	        chart.setOption(option);
+	        window.addEventListener('resize', () => chart.resize());
+	    }
+
+	    // 渲染观点列表
+	    function renderOpinions(opinions) {
+	        const container = document.getElementById('opinionsList');
+	        let filtered = opinions;
+	        if (state.currentSentimentFilter !== 'all') {
+	            filtered = opinions.filter(op => op.sentiment === state.currentSentimentFilter);
+	        }
+
+	        if (!filtered || filtered.length === 0) {
+	            container.innerHTML = '<div class="empty-state">暂无观点数据</div>';
+	            return;
+	        }
+
+	        container.innerHTML = filtered.map(op => `
+	            <div class="opinion-item">
+	                <div class="opinion-header">
+	                    <span class="sentiment-tag ${op.sentiment}">${op.sentiment === 'positive' ? '正面' : (op.sentiment === 'negative' ? '负面' : '中性')}</span>
+	                    ${op.publish_time ? `<span class="opinion-time"><i class="far fa-clock"></i> ${op.publish_time}</span>` : ''}
+	                </div>
+	                <div class="opinion-content">${escapeHtml(op.summary)}</div>
+	            </div>
+	        `).join('');
+	    }
+
+	    // 为网络图节点加载驱动因素
+	    async function loadDriversForNode(keyword) {
+	        try {
+	            const resp = await fetch(`/keywords/api/keywords/drivers?keyword=${encodeURIComponent(keyword)}&days=${state.days}`);
+	            const data = await resp.json();
+	            renderDrivers(data.drivers || []);
+	        } catch (e) {
+	            console.error('加载驱动因素失败:', e);
+	        }
+	    }
+
+	    // 显示驱动因素详情
+	    async function showDriverDetail(driverKeyword) {
+	        const modal = document.getElementById('detailModal');
+	        const body = document.getElementById('detailBody');
+	        document.getElementById('detailTitle').textContent = `${state.selectedKeyword} + ${driverKeyword} 的关联观点`;
+
+	        body.innerHTML = '<div class="loading"><div class="loading-spinner"></div>加载中...</div>';
+	        modal.classList.add('show');
+
+	        try {
+	            const resp = await fetch(`/keywords/api/keywords/opinions?keyword=${encodeURIComponent(state.selectedKeyword)}&days=${state.days}&limit=50`);
+	            const data = await resp.json();
+
+	            const sentences = (data.opinions || []).filter(op => op.summary && op.summary.includes(driverKeyword)).slice(0, 10);
+
+	            if (sentences.length === 0) {
+	                body.innerHTML = '<div class="empty-state">暂无相关观点</div>';
+	            } else {
+	                body.innerHTML = sentences.map(s => `
+	                    <div class="detail-sentence">
+	                        <div style="margin-bottom: 0.25rem;">
+	                            <span class="sentiment-tag ${s.sentiment}">${s.sentiment === 'positive' ? '正面' : (s.sentiment === 'negative' ? '负面' : '中性')}</span>
+	                        </div>
+	                        ${escapeHtml(s.summary)}
+	                    </div>
+	                `).join('');
+	            }
+	        } catch (e) {
+	            body.innerHTML = '<div class="empty-state">加载失败</div>';
+	        }
+	    }
+
+	    // 关闭详情弹窗
+	    function closeDetail() {
+	        document.getElementById('detailModal').classList.remove('show');
+	    }
+
+	    // 高亮转折点
+	    function highlightBurstPoints(points) {
+	        const chart = echarts.getInstanceByDom(document.getElementById('timelineChart'));
+	        if (!chart) return;
+
+	        const option = chart.getOption();
+	        option.series[0].markPoint = {
+	            data: points.map(p => ({
+	                name: p.type,
+	                coord: [p.date, p.count],
+	                value: p.count,
+	                itemStyle: { color: p.type === 'burst' ? '#EF4444' : '#F59E0B' }
+	            }))
+	        };
+
+	        chart.setOption(option);
+	    }
+
+	    // 选择关键词
+	    async function selectKeyword(keyword) {
+	        state.selectedKeyword = keyword;
+	        state.multiSelectMode = false;
+	        state.selectedKeywords = [];
+
+	        const kwData = state.keywordsData.find(k => k.keyword === keyword);
+
+	        await Promise.all([
+	            loadTimeline(),
+	            loadCooccurrence(),
+	            loadDrivers(),
+	            loadSentimentTrend(),
+	            loadOpinions()
+	        ]);
+	    }
+
+	    // 显示关键词详情
+	    async function showKeywordDetail(keyword) {
+	        state.selectedKeyword = keyword;
+	        showToast(`查看关键词: ${keyword} 的详情`, 'info');
+	    }
+
+	    // 添加到监控
+	    async function addToMonitor() {
+	        if (!state.selectedKeyword) {
+	            showToast('请先选择关键词', 'error');
+	            return;
+	        }
+
+	        try {
+	            const resp = await fetch('/keywords/api/monitor/add', {
+	                method: 'POST',
+	                headers: { 'Content-Type': 'application/json' },
+	                body: JSON.stringify({ keyword: state.selectedKeyword })
+	            });
+	            const data = await resp.json();
+
+	            if (data.success) {
+	                showToast('添加监控成功', 'success');
+	            } else {
+	                showToast(data.error || '添加失败', 'error');
+	            }
+	        } catch (e) {
+	            showToast('添加失败', 'error');
+	        }
+	    }
+
+	    // 刷新分析
+	    async function refreshAnalysis() {
+	        showToast('正在刷新数据...', 'info');
+	        await loadKeywordEvolution();
+	        await loadHeatRank(document.querySelector('.category-tab.active')?.dataset.category || 'all');
+	        await loadHotWords(document.querySelector('.time-selector button.active')?.dataset.period || 'week');
+	        showToast('数据已刷新', 'success');
+	    }
+
+	    // 跳转到热词详情页面
+	    function goToHotword(keyword) {
+	        window.location.href = '/keywords/hotword/' + encodeURIComponent(keyword);
+	    }
+
+	    // 用户下拉菜单
+	    function toggleUserMenu() {
+	        const menu = document.getElementById('userDropdown');
+	        const isHidden = menu.style.display === 'none' || menu.style.display === '';
+
+	        if (isHidden) {
+	            menu.style.display = 'block';
+	            document.addEventListener('click', function closeMenu(e) {
+	                const userProfile = document.querySelector('.user-profile');
+	                if (!userProfile.contains(e.target) && !menu.contains(e.target)) {
+	                    menu.style.display = 'none';
+	                    document.removeEventListener('click', closeMenu);
+	                }
+	            });
+	        } else {
+	            menu.style.display = 'none';
+	        }
+	    }
+	</script>
+</body>
+</html>

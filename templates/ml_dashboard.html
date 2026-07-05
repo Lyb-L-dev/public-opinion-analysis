@@ -1,0 +1,713 @@
+{% extends "base.html" %}
+
+{% block title %}AI智能分析{% endblock %}
+
+{% block page_title %}AI智能分析{% endblock %}
+{% block page_subtitle %}基于机器学习的舆情趋势预测系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ========== 通用卡片组件 ========== */
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: var(--transition);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    .chart-card:hover {
+        border-color: var(--primary-light);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .chart-header h3 {
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .chart-header h3 i { color: var(--primary-color); }
+
+    .chart-actions { display: flex; gap: 0.5rem; }
+
+    .chart-btn {
+        padding: 0.4rem 0.85rem;
+        border-radius: 8px;
+        background: white;
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+    .chart-btn:hover, .chart-btn.active {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+
+    /* ========== 动画 ========== */
+    .fade-in { animation: fadeInUp 0.6s ease-out; }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ========== 全局状态栏 ========== */
+    .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    .status-index { text-align: center; min-width: 90px; }
+    .status-index-value { font-size: 2.2rem; font-weight: 700; color: var(--primary-color); line-height: 1; }
+    .status-index-label { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem; }
+    .status-divider { width: 1px; height: 50px; background: var(--border-color); }
+    .status-risk { display: flex; align-items: center; gap: 0.75rem; min-width: 120px; }
+    .status-risk-badge { padding: 0.35rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; color: white; }
+    .status-risk-label { font-size: 0.85rem; color: var(--text-secondary); }
+    .status-trend { display: flex; align-items: center; gap: 0.5rem; min-width: 100px; }
+    .trend-arrow { font-size: 1.5rem; font-weight: 700; }
+    .trend-text { font-size: 0.9rem; font-weight: 600; }
+    .trend-sub { font-size: 0.75rem; color: var(--text-secondary); }
+    .status-sentiment { flex: 1; }
+    .sentiment-label { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.4rem; }
+    .sentiment-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; }
+    .sentiment-bar span { transition: width 0.5s ease; }
+    .sentiment-bar .pos { background: var(--success-color); }
+    .sentiment-bar .neu { background: var(--warning-color); }
+    .sentiment-bar .neg { background: var(--danger-color); }
+    .sentiment-legend { display: flex; gap: 1.5rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); }
+    .sentiment-legend span { display: flex; align-items: center; gap: 0.3rem; }
+    .sentiment-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-refresh { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
+    .last-update-time { font-size: 0.8rem; color: var(--text-secondary); }
+    .refresh-icon {
+        color: var(--primary-color);
+        cursor: pointer;
+        font-size: 1.1rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: var(--transition);
+    }
+    .refresh-icon:hover { background: rgba(74, 108, 247, 0.1); }
+    .refresh-icon.spinning { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+    /* ========== 双栏主体区 ========== */
+    .main-split { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+
+    /* ========== 趋势图 ========== */
+    .trend-chart-wrap { height: 320px; position: relative; }
+    .trend-meta { display: flex; gap: 1.5rem; margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary); }
+    .trend-meta span { display: flex; align-items: center; gap: 0.35rem; }
+    .trend-meta .meta-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+    /* ========== 异常检测 ========== */
+    .anomaly-summary { display: flex; gap: 1.5rem; margin-bottom: 1rem; align-items: center; }
+    .anomaly-stat { text-align: center; }
+    .anomaly-stat-value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+    .anomaly-stat-label { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; }
+    .anomaly-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .anomaly-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 0.9rem;
+        position: relative;
+        overflow: hidden;
+        transition: var(--transition);
+    }
+    .anomaly-card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .anomaly-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; }
+    .anomaly-card.high::before { background: var(--danger-color); }
+    .anomaly-card.medium::before { background: var(--warning-color); }
+    .anomaly-card.low::before { background: var(--primary-color); }
+    .anomaly-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.4rem; }
+    .anomaly-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 0.5rem; }
+    .anomaly-score-badge { font-size: 0.65rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px; color: white; white-space: nowrap; }
+    .anomaly-score-badge.high { background: var(--danger-color); }
+    .anomaly-score-badge.medium { background: var(--warning-color); }
+    .anomaly-score-badge.low { background: var(--primary-color); }
+    .anomaly-tags { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.35rem; }
+    .anomaly-tag { padding: 0.08rem 0.4rem; border-radius: 4px; font-size: 0.62rem; font-weight: 500; }
+    .anomaly-tag.heat { background: rgba(239,68,68,0.1); color: var(--danger-color); }
+    .anomaly-tag.comment { background: rgba(245,158,11,0.1); color: var(--warning-color); }
+    .anomaly-tag.sentiment-drop { background: rgba(139,92,246,0.1); color: var(--purple-color); }
+    .anomaly-tag.sentiment-spike { background: rgba(16,185,129,0.1); color: var(--success-color); }
+    .anomaly-tag.engagement { background: rgba(59,130,246,0.1); color: #3B82F6; }
+    .anomaly-reason { font-size: 0.72rem; color: var(--text-secondary); line-height: 1.4; }
+
+    /* ========== 影响力评分 ========== */
+    .influence-summary { display: flex; gap: 2rem; margin-bottom: 1rem; }
+    .influence-stat { display: flex; align-items: center; gap: 0.5rem; }
+    .influence-stat-value { font-size: 1.3rem; font-weight: 700; color: var(--primary-color); }
+    .influence-stat-label { font-size: 0.8rem; color: var(--text-secondary); }
+    .influence-ranking { display: flex; flex-direction: column; gap: 0.55rem; max-height: 420px; overflow-y: auto; }
+    .influence-item {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        padding: 0.7rem 0.9rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+    .influence-item:hover { border-color: var(--primary-color); background: white; }
+    .influence-rank { min-width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; color: white; }
+    .influence-rank.r1 { background: linear-gradient(135deg, #F59E0B, #FBBF24); }
+    .influence-rank.r2 { background: linear-gradient(135deg, #94A3B8, #CBD5E1); }
+    .influence-rank.r3 { background: linear-gradient(135deg, #CD7F32, #E8A87C); }
+    .influence-rank.rn { background: var(--text-secondary); }
+    .influence-info { flex: 1; min-width: 0; }
+    .influence-title { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 0.25rem; }
+    .influence-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
+    .influence-bar-bg { flex: 1; height: 5px; background: var(--border-color); border-radius: 3px; overflow: hidden; }
+    .influence-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; background: linear-gradient(90deg, var(--primary-color), var(--purple-color)); }
+    .influence-score { font-size: 0.78rem; font-weight: 700; color: var(--primary-color); min-width: 38px; text-align: right; }
+    .influence-expand { padding: 0.3rem 0.5rem; border-radius: 6px; background: white; border: 1px solid var(--border-color); font-size: 0.65rem; color: var(--text-secondary); transition: var(--transition); }
+    .influence-item:hover .influence-expand { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+    .influence-factors { display: none; padding: 0.65rem 0.9rem 0.65rem 3.2rem; background: rgba(74,108,247,0.03); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 10px 10px; margin-top: -0.45rem; }
+    .influence-factors.show { display: block; }
+    .factors-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; }
+    .factor-item { text-align: center; }
+    .factor-label { font-size: 0.62rem; color: var(--text-secondary); margin-bottom: 0.15rem; }
+    .factor-value { font-size: 0.78rem; font-weight: 700; color: var(--text-primary); }
+    .factor-bar { height: 4px; background: var(--border-color); border-radius: 2px; margin-top: 0.15rem; overflow: hidden; }
+    .factor-bar-fill { height: 100%; border-radius: 2px; background: var(--primary-color); }
+
+    /* ========== AI报告 ========== */
+    .ai-report-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
+    .ai-report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .ai-report-header h3 {
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .ai-report-header h3 i { color: var(--primary-color); }
+    .ai-report-actions { display: flex; gap: 0.5rem; }
+    .ai-report-btn {
+        padding: 0.4rem 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: white;
+        color: var(--text-secondary);
+        font-size: 0.82rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    .ai-report-btn:hover { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+    .ai-report-btn.loading { opacity: 0.7; cursor: not-allowed; pointer-events: none; }
+    .ai-report-btn.loading i { animation: spin 1s linear infinite; }
+    .ai-report-badge { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .ai-report-badge.ai-on { background: rgba(16,185,129,0.1); color: var(--success-color); }
+    .ai-report-badge.ai-off { background: rgba(245,158,11,0.1); color: var(--warning-color); }
+    .ai-report-content { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+    .ai-findings { display: flex; flex-direction: column; gap: 0.6rem; }
+    .ai-finding-item { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.6rem 0.85rem; background: rgba(74,108,247,0.04); border-radius: 8px; border-left: 3px solid var(--primary-color); }
+    .ai-finding-icon { color: var(--primary-color); margin-top: 0.1rem; font-size: 0.85rem; }
+    .ai-finding-text { font-size: 0.82rem; color: var(--text-primary); line-height: 1.5; }
+    .ai-risk-section { display: flex; flex-direction: column; gap: 0.75rem; }
+    .ai-risk-box { display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; border-radius: 8px; }
+    .ai-risk-box.high { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+    .ai-risk-box.medium { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); }
+    .ai-risk-box.low { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); }
+    .ai-risk-label { font-size: 0.78rem; color: var(--text-secondary); }
+    .ai-risk-value { font-size: 1.1rem; font-weight: 700; }
+    .ai-risk-value.high { color: var(--danger-color); }
+    .ai-risk-value.medium { color: var(--warning-color); }
+    .ai-risk-value.low { color: var(--success-color); }
+    .ai-risk-reason { font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5; padding: 0.6rem 0.85rem; background: var(--card-bg); border-radius: 8px; border-left: 3px solid var(--border-color); }
+    .ai-summary { padding: 1rem 1.25rem; background: linear-gradient(135deg, rgba(74,108,247,0.06), rgba(139,92,246,0.06)); border-radius: 10px; border: 1px solid rgba(74,108,247,0.1); }
+    .ai-summary-label { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.35rem; }
+    .ai-summary-text { font-size: 0.88rem; color: var(--text-primary); line-height: 1.7; }
+    .ai-recommendations { margin-top: 1rem; }
+    .ai-recommendations-title { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 0.4rem; }
+    .ai-recommendations-title i { color: var(--primary-color); }
+    .ai-rec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+    .ai-rec-item { padding: 0.75rem; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; }
+    .ai-rec-priority { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.62rem; font-weight: 600; margin-bottom: 0.3rem; }
+    .ai-rec-priority.high { background: rgba(239,68,68,0.1); color: var(--danger-color); }
+    .ai-rec-priority.medium { background: rgba(245,158,11,0.1); color: var(--warning-color); }
+    .ai-rec-priority.low { background: rgba(16,185,129,0.1); color: var(--success-color); }
+    .ai-rec-type { font-size: 0.72rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .ai-rec-content { font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; }
+
+    /* ========== 状态显示 ========== */
+    .loading-state { text-align: center; padding: 1.5rem; color: var(--text-secondary); }
+    .loading-state i { margin-bottom: 0.5rem; color: var(--primary-color); font-size: 1.2rem; display: block; }
+    .error-state { text-align: center; padding: 1rem; color: var(--danger-color); background: rgba(239, 68, 68, 0.08); border-radius: 8px; }
+
+    /* ========== 响应式 ========== */
+    @media (max-width: 1200px) {
+        .main-split { grid-template-columns: 1fr; }
+        .anomaly-cards { grid-template-columns: repeat(3, 1fr); }
+        .ai-report-content { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 992px) {
+        .status-bar { padding: 1rem; gap: 1rem; }
+        .status-sentiment { width: 100%; margin-top: 0.5rem; }
+        .factors-grid { grid-template-columns: repeat(3, 1fr); }
+        .anomaly-cards { grid-template-columns: repeat(2, 1fr); }
+        .ai-rec-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+        .status-bar { flex-wrap: wrap; }
+        .chart-header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+        .anomaly-cards { grid-template-columns: 1fr; }
+        .anomaly-summary { flex-wrap: wrap; }
+        .influence-summary { flex-wrap: wrap; }
+        .factors-grid { grid-template-columns: repeat(2, 1fr); }
+        .ai-rec-grid { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- 全局状态栏 -->
+<div class="status-bar fade-in">
+    <div class="status-index">
+        <div class="status-index-value" id="statusIndex">--</div>
+        <div class="status-index-label">舆情指数</div>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-risk">
+        <div class="status-risk-badge" id="riskBadge" style="background: var(--text-secondary);">加载中</div>
+        <div class="status-risk-label">风险等级</div>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-trend">
+        <i class="fas fa-minus trend-arrow" id="trendArrow" style="color: var(--text-secondary);"></i>
+        <div>
+            <div class="trend-text" id="trendText" style="color: var(--text-secondary);">--</div>
+            <div class="trend-sub">舆情趋势</div>
+        </div>
+    </div>
+    <div class="status-divider"></div>
+    <div class="status-sentiment">
+        <div class="sentiment-label">情感分布</div>
+        <div class="sentiment-bar">
+            <span class="pos" id="sentPos" style="width: 0%"></span>
+            <span class="neu" id="sentNeu" style="width: 0%"></span>
+            <span class="neg" id="sentNeg" style="width: 0%"></span>
+        </div>
+        <div class="sentiment-legend">
+            <span><span class="dot" style="background: var(--success-color);"></span><span id="sentPosPct">--%</span>正面</span>
+            <span><span class="dot" style="background: var(--warning-color);"></span><span id="sentNeuPct">--%</span>中性</span>
+            <span><span class="dot" style="background: var(--danger-color);"></span><span id="sentNegPct">--%</span>负面</span>
+        </div>
+    </div>
+    <div class="status-refresh">
+        <span class="last-update-time" id="lastUpdateTime">--</span>
+        <i class="fas fa-sync-alt refresh-icon" id="refreshIcon" onclick="refreshAll()"></i>
+    </div>
+</div>
+
+<!-- 双栏主体：异常检测 + 影响力评分 -->
+<div class="main-split fade-in" style="animation-delay: 0.1s">
+    <!-- 孤立森林异常检测 -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-shield-alt" style="color: var(--purple-color);"></i> 孤立森林异常检测</h3>
+            <span style="font-size:0.78rem;color:var(--text-secondary);" id="anomalyDays">近7天</span>
+        </div>
+        <div class="anomaly-summary" id="anomalySummary">
+            <div class="anomaly-stat">
+                <div class="anomaly-stat-value" id="anomalyTotal" style="color:var(--danger-color);">--</div>
+                <div class="anomaly-stat-label">异常总数</div>
+            </div>
+            <div class="anomaly-stat">
+                <div class="anomaly-stat-value" id="anomalyHigh" style="color:var(--danger-color);">--</div>
+                <div class="anomaly-stat-label">高风险</div>
+            </div>
+            <div class="anomaly-stat">
+                <div class="anomaly-stat-value" id="anomalyMedium" style="color:var(--warning-color);">--</div>
+                <div class="anomaly-stat-label">中风险</div>
+            </div>
+            <div class="anomaly-stat">
+                <div class="anomaly-stat-value" id="anomalyLow" style="color:var(--primary-color);">--</div>
+                <div class="anomaly-stat-label">低风险</div>
+            </div>
+        </div>
+        <div class="anomaly-cards" id="anomalyCards">
+            <div class="loading-state" style="grid-column:1/-1;"><i class="fas fa-spinner fa-spin"></i> 异常检测模型加载中...</div>
+        </div>
+    </div>
+
+    <!-- 事件影响力评分 -->
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-star" style="color: var(--warning-color);"></i> 事件影响力评分</h3>
+            <div style="display:flex;gap:1rem;font-size:0.78rem;color:var(--text-secondary);">
+                <span>平均 <strong id="influenceAvg" style="color:var(--primary-color);font-size:1rem;">--</strong></span>
+                <span>最高 <strong id="influenceMax" style="color:var(--primary-color);font-size:1rem;">--</strong></span>
+            </div>
+        </div>
+        <div class="influence-ranking" id="influenceRanking">
+            <div class="loading-state"><i class="fas fa-spinner fa-spin"></i> 影响力评分计算中...</div>
+        </div>
+    </div>
+</div>
+
+<!-- AI智能分析报告 -->
+<div class="ai-report-card fade-in" style="animation-delay: 0.3s">
+    <div class="ai-report-header">
+        <h3><i class="fas fa-brain"></i> AI智能分析报告</h3>
+        <div class="ai-report-actions">
+            <button class="ai-report-btn" id="refreshAiReport" onclick="loadAiReport(true)">
+                <i class="fas fa-sync-alt"></i> 重新生成
+            </button>
+            <button class="ai-report-btn" id="copyAiReport" onclick="copyAiReport()">
+                <i class="fas fa-copy"></i> 复制报告
+            </button>
+        </div>
+    </div>
+    <div id="aiReportContent">
+        <div class="loading-state"><i class="fas fa-spinner fa-spin"></i> AI报告生成中，请稍候...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let isLoading = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        refreshAll();
+    });
+
+    async function refreshAll() {
+        if (isLoading) return;
+        isLoading = true;
+        const icon = document.getElementById('refreshIcon');
+        if (icon) icon.classList.add('spinning');
+
+        try {
+            await Promise.all([
+                loadGlobalStatus(),
+                loadAnomalyDetection(),
+                loadInfluenceScoring(),
+                loadAiReport()
+            ]);
+            document.getElementById('lastUpdateTime').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN');
+        } catch (err) {
+            console.error('刷新失败:', err);
+        } finally {
+            isLoading = false;
+            if (icon) icon.classList.remove('spinning');
+        }
+    }
+
+    async function fetchAPI(url) {
+        try {
+            const res = await fetch(url, { signal: AbortSignal.timeout(60000) });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return await res.json();
+        } catch (e) {
+            console.error('API请求失败:', url, e);
+            throw e;
+        }
+    }
+
+    // 全局状态
+    async function loadGlobalStatus() {
+        try {
+            const data = await fetchAPI('/enhanced/api/ml/comprehensive-report?days=30');
+            const summary = data.summary || {};
+            const sentiment = data.sentiment_dist || {};
+            const trend = data.trend_prediction || {};
+
+            document.getElementById('statusIndex').textContent = Math.round((summary.avg_sentiment || 0.5) * 100);
+
+            const riskLevel = data.risk_level || '低';
+            const riskColors = { '高': 'var(--danger-color)', '中': 'var(--warning-color)', '低': 'var(--success-color)' };
+            const badge = document.getElementById('riskBadge');
+            badge.textContent = riskLevel;
+            badge.style.background = riskColors[riskLevel] || 'var(--text-secondary)';
+
+            const trendDir = trend.current_trend || '平稳';
+            const trendMap = { '上升': ['fa-arrow-up', 'var(--danger-color)'], '下降': ['fa-arrow-down', 'var(--success-color)'], '平稳': ['fa-minus', 'var(--text-secondary)'] };
+            const [arrow, color] = trendMap[trendDir] || trendMap['平稳'];
+            document.getElementById('trendArrow').className = 'fas ' + arrow;
+            document.getElementById('trendArrow').style.color = color;
+            document.getElementById('trendText').textContent = trendDir;
+            document.getElementById('trendText').style.color = color;
+
+            const total = sentiment.total || 1;
+            const pos = sentiment.positive || 0;
+            const neu = sentiment.neutral || 0;
+            const neg = sentiment.negative || 0;
+            document.getElementById('sentPos').style.width = (pos / total * 100) + '%';
+            document.getElementById('sentNeu').style.width = (neu / total * 100) + '%';
+            document.getElementById('sentNeg').style.width = (neg / total * 100) + '%';
+            document.getElementById('sentPosPct').textContent = Math.round(pos / total * 100) + '%';
+            document.getElementById('sentNeuPct').textContent = Math.round(neu / total * 100) + '%';
+            document.getElementById('sentNegPct').textContent = Math.round(neg / total * 100) + '%';
+        } catch (err) {
+            console.error('全局状态加载失败:', err);
+        }
+    }
+
+    // 孤立森林异常检测
+    async function loadAnomalyDetection() {
+        try {
+            const data = await fetchAPI('/enhanced/api/ml/anomaly-detection?days=7');
+            const summary = data.summary || {};
+            const anomalies = data.anomalies || [];
+
+            document.getElementById('anomalyDays').textContent = '近' + (summary.analysis_days || 7) + '天';
+            document.getElementById('anomalyTotal').textContent = summary.total_anomalies ?? '--';
+            document.getElementById('anomalyHigh').textContent = summary.severity?.high ?? '--';
+            document.getElementById('anomalyMedium').textContent = summary.severity?.medium ?? '--';
+            document.getElementById('anomalyLow').textContent = summary.severity?.low ?? '--';
+
+            const cardsEl = document.getElementById('anomalyCards');
+            if (anomalies.length === 0) {
+                cardsEl.innerHTML = '<div class="loading-state" style="grid-column:1/-1;">暂无异常数据，舆情态势平稳</div>';
+                return;
+            }
+
+            const typeTagMap = {
+                'heat_spike': { cls: 'heat', label: '热度异常' },
+                'comment_spike': { cls: 'comment', label: '评论激增' },
+                'sentiment_drop': { cls: 'sentiment-drop', label: '情感骤降' },
+                'sentiment_spike': { cls: 'sentiment-spike', label: '情感激增' },
+                'engagement_spike': { cls: 'engagement', label: '互动激增' }
+            };
+
+            const displayAnomalies = anomalies.slice(0, 6);
+            cardsEl.innerHTML = displayAnomalies.map(a => {
+                const severity = a.severity || 'low';
+                const score = a.anomaly_score ?? 0;
+                const scoreLabel = score < -0.5 ? '高' : score < -0.2 ? '中' : '低';
+                const types = (a.anomaly_types || []).map(t => {
+                    const tag = typeTagMap[t] || { cls: '', label: t };
+                    return '<span class="anomaly-tag ' + tag.cls + '">' + tag.label + '</span>';
+                }).join('');
+                const reason = (a.reasons || [])[0] || '多维度信号异常';
+
+                return '<div class="anomaly-card ' + severity + '">' +
+                    '<div class="anomaly-header">' +
+                    '<div class="anomaly-title">' + (a.event_title || '未知事件') + '</div>' +
+                    '<span class="anomaly-score-badge ' + severity + '">' + scoreLabel + ' (' + score.toFixed(3) + ')</span>' +
+                    '</div>' +
+                    '<div class="anomaly-tags">' + (types || '<span class="anomaly-tag">信号异常</span>') + '</div>' +
+                    '<div class="anomaly-reason">' + reason + '</div>' +
+                    '</div>';
+            }).join('');
+        } catch (err) {
+            document.getElementById('anomalyCards').innerHTML = '<div class="error-state" style="grid-column:1/-1;">异常检测加载失败</div>';
+        }
+    }
+
+    // 影响力评分
+    async function loadInfluenceScoring() {
+        try {
+            const data = await fetchAPI('/enhanced/api/ml/influence-scoring?limit=8');
+            const summary = data.summary || {};
+            const events = data.events || [];
+
+            document.getElementById('influenceAvg').textContent = summary.avg_influence_score ?? '--';
+            document.getElementById('influenceMax').textContent = summary.max_score ?? '--';
+
+            const rankingEl = document.getElementById('influenceRanking');
+            if (events.length === 0) {
+                rankingEl.innerHTML = '<div class="loading-state">暂无事件数据</div>';
+                return;
+            }
+
+            const maxScore = Math.max(...events.map(e => e.influence_score), 1);
+
+            rankingEl.innerHTML = events.map((ev, idx) => {
+                const rank = idx + 1;
+                const rankCls = rank === 1 ? 'r1' : rank === 2 ? 'r2' : rank === 3 ? 'r3' : 'rn';
+                const barPct = maxScore > 0 ? (ev.influence_score / maxScore * 100).toFixed(1) : 0;
+                const fb = ev.factor_breakdown || {};
+
+                const factorsHtml = Object.entries(fb).map(([key, f]) =>
+                    '<div class="factor-item">' +
+                    '<div class="factor-label">' + f.label + '</div>' +
+                    '<div class="factor-value">' + (f.value || 0).toFixed(2) + '</div>' +
+                    '<div class="factor-bar"><div class="factor-bar-fill" style="width:' + ((f.value || 0) * 100).toFixed(1) + '%"></div></div>' +
+                    '</div>'
+                ).join('');
+
+                return '<div>' +
+                    '<div class="influence-item" onclick="toggleInfluenceFactors(this)">' +
+                    '<div class="influence-rank ' + rankCls + '">' + rank + '</div>' +
+                    '<div class="influence-info">' +
+                    '<div class="influence-title">' + ev.title + '</div>' +
+                    '<div class="influence-bar-wrap">' +
+                    '<div class="influence-bar-bg"><div class="influence-bar-fill" style="width:' + barPct + '%"></div></div>' +
+                    '<span class="influence-score">' + ev.influence_score + '</span>' +
+                    '</div></div>' +
+                    '<button class="influence-expand"><i class="fas fa-chevron-down"></i></button>' +
+                    '</div>' +
+                    '<div class="influence-factors" id="factors-' + ev.event_id + '">' +
+                    '<div class="factors-grid">' + factorsHtml + '</div>' +
+                    '</div></div>';
+            }).join('');
+        } catch (err) {
+            document.getElementById('influenceRanking').innerHTML = '<div class="error-state">影响力评分加载失败</div>';
+        }
+    }
+
+    function toggleInfluenceFactors(el) {
+        const factorsDiv = el.nextElementSibling;
+        if (factorsDiv && factorsDiv.classList.contains('influence-factors')) {
+            const isOpen = factorsDiv.classList.contains('show');
+            document.querySelectorAll('.influence-factors.show').forEach(f => f.classList.remove('show'));
+            document.querySelectorAll('.influence-expand i').forEach(icon => icon.className = 'fas fa-chevron-down');
+            if (!isOpen) {
+                factorsDiv.classList.add('show');
+                el.querySelector('.influence-expand i').className = 'fas fa-chevron-up';
+            }
+        }
+    }
+
+    // AI智能分析报告
+    let aiReportCache = null;
+
+    async function loadAiReport(forceRefresh = false) {
+        const btn = document.getElementById('refreshAiReport');
+        const contentEl = document.getElementById('aiReportContent');
+
+        if (!forceRefresh && aiReportCache) {
+            renderAiReport(aiReportCache);
+            return;
+        }
+
+        contentEl.innerHTML = '<div class="loading-state"><i class="fas fa-spinner fa-spin"></i> AI报告生成中，请稍候...</div>';
+        if (btn) { btn.classList.add('loading'); }
+
+        try {
+            const data = await fetchAPI('/enhanced/api/ml/ai-report?days=30');
+            aiReportCache = data;
+            renderAiReport(data);
+        } catch (err) {
+            contentEl.innerHTML = '<div class="error-state">AI报告加载失败</div>';
+        } finally {
+            if (btn) { btn.classList.remove('loading'); }
+        }
+    }
+
+    function renderAiReport(data) {
+        const contentEl = document.getElementById('aiReportContent');
+        const ai = data.ai_analysis || {};
+        const isAi = ai.ai_powered !== false;
+
+        const badge = isAi
+            ? '<span class="ai-report-badge ai-on"><i class="fas fa-check-circle"></i> AI大模型生成</span>'
+            : '<span class="ai-report-badge ai-off"><i class="fas fa-exclamation-circle"></i> 规则生成</span>';
+
+        // 关键发现
+        const findings = (ai.key_findings || []).map(f =>
+            '<div class="ai-finding-item"><i class="fas fa-lightbulb ai-finding-icon"></i><span class="ai-finding-text">' + f + '</span></div>'
+        ).join('');
+
+        // 风险等级
+        const riskLevel = ai.risk_level || '低';
+        const riskBoxClass = riskLevel === '高' ? 'high' : riskLevel === '中' ? 'medium' : 'low';
+        const riskValueClass = riskLevel === '高' ? 'high' : riskLevel === '中' ? 'medium' : 'low';
+
+        // 建议
+        const recs = (ai.recommendations || []).slice(0, 3).map(r => {
+            const pri = r.priority || '中';
+            const priCls = pri === '高' ? 'high' : pri === '中' ? 'medium' : 'low';
+            return '<div class="ai-rec-item">' +
+                '<span class="ai-rec-priority ' + priCls + '">' + pri + '优先级</span>' +
+                '<div class="ai-rec-type">' + (r.type || '建议') + '</div>' +
+                '<div class="ai-rec-content">' + (r.content || '') + '</div>' +
+                '</div>';
+        }).join('');
+
+        const recSection = recs ? '<div class="ai-recommendations"><div class="ai-recommendations-title"><i class="fas fa-tasks"></i> 应对建议</div><div class="ai-rec-grid">' + recs + '</div></div>' : '';
+
+        contentEl.innerHTML =
+            '<div class="ai-report-badge-row" style="margin-bottom:1rem;">' + badge + '</div>' +
+            '<div class="ai-report-content">' +
+            '<div class="ai-findings">' +
+            '<div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:0.5rem;">关键发现</div>' +
+            (findings || '<div class="ai-finding-item"><i class="fas fa-info-circle ai-finding-icon" style="color:var(--text-secondary);"></i><span class="ai-finding-text" style="color:var(--text-secondary);">暂无数据</span></div>') +
+            '</div>' +
+            '<div class="ai-risk-section">' +
+            '<div style="font-size:0.82rem;font-weight:600;color:var(--text-primary);margin-bottom:0.5rem;">风险评估</div>' +
+            '<div class="ai-risk-box ' + riskBoxClass + '">' +
+            '<div><div class="ai-risk-label">风险等级</div><div class="ai-risk-value ' + riskValueClass + '">' + riskLevel + '</div></div>' +
+            '</div>' +
+            '<div class="ai-risk-reason"><i class="fas fa-info-circle" style="color:var(--text-secondary);margin-right:0.4rem;"></i>' + (ai.risk_reason || '暂无') + '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="ai-summary" style="margin-top:1rem;">' +
+            '<div class="ai-summary-label"><i class="fas fa-file-alt" style="color:var(--primary-color);"></i> 舆情态势总结</div>' +
+            '<div class="ai-summary-text">' + (ai.summary_text || '暂无分析内容') + '</div>' +
+            '</div>' +
+            recSection;
+    }
+
+    function copyAiReport() {
+        if (!aiReportCache) return;
+        const ai = aiReportCache.ai_analysis || {};
+        const text = [
+            '=== AI舆情分析报告 ===',
+            '风险等级：' + (ai.risk_level || '低'),
+            '风险理由：' + (ai.risk_reason || '暂无'),
+            '',
+            '关键发现：',
+            ...(ai.key_findings || []).map((f, i) => (i + 1) + '. ' + f),
+            '',
+            '舆情总结：' + (ai.summary_text || '暂无'),
+            '',
+            '应对建议：',
+            ...(ai.recommendations || []).map((r, i) => (i + 1) + '. [' + r.priority + '] ' + r.type + '：' + r.content)
+        ].join('\n');
+
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById('copyAiReport');
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> 已复制';
+            btn.style.color = 'var(--success-color)';
+            setTimeout(() => { btn.innerHTML = orig; btn.style.color = ''; }, 2000);
+        });
+    }
+</script>
+{% endblock %}

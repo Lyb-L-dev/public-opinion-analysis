@@ -65,6 +65,47 @@
 | 调度 | APScheduler |
 | 实时推送 | WebSocket (websockets / trio-websocket) |
 
+## 系统截图
+
+### 仪表盘
+
+<table>
+  <tr>
+    <td><img src="docs/images/仪表盘页面.png" alt="仪表盘"></td>
+    <td><img src="docs/images/仪表盘页面2.png" alt="仪表盘-实时监控"></td>
+  </tr>
+</table>
+
+### 关键词分析
+
+<table>
+  <tr>
+    <td><img src="docs/images/关键词分析页面.png" alt="关键词分析"></td>
+    <td><img src="docs/images/关键词页面.png" alt="关键词词云"></td>
+  </tr>
+</table>
+
+### 智能分析
+
+<table>
+  <tr>
+    <td><img src="docs/images/智能分析页面.png" alt="智能分析"></td>
+    <td><img src="docs/images/智能分析页面2.png" alt="智能分析-ML详情"></td>
+  </tr>
+</table>
+
+### 其他页面
+
+<table>
+  <tr>
+    <td><img src="docs/images/登录页面.png" alt="登录页面"></td>
+    <td><img src="docs/images/收藏页面.png" alt="收藏页面"></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/images/关键词页面2.png" alt="关键词详情"></td>
+  </tr>
+</table>
+
 ## 项目结构
 
 ```

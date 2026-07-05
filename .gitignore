@@ -58,5 +58,5 @@ nul
 # Word documents
 *.docx
 
-# Backup files
-crawlers/weibo_crawl_backup/
+# Claude Code
+.claude/

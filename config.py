@@ -49,8 +49,8 @@ class Config:
     SPARK_CHECKPOINT_ROOT = os.getenv('SPARK_CHECKPOINT_ROOT', './spark_checkpoint')
 
     # ===== 新增：爬虫配置（解决硬编码，方便修改） =====
-    EDGE_USER_DATA_DIR = os.getenv('EDGE_USER_DATA_DIR', 'C:/Users/刘烨宝/AppData/Local/Microsoft/Edge/User Data/Default')
-    EDGE_USER_DATA_DIR_HOT_SEARCH = os.getenv('EDGE_USER_DATA_DIR_HOT_SEARCH', 'C:/Users/刘烨宝/AppData/Local/Microsoft/Edge/User Data/HotSearch')
+    EDGE_USER_DATA_DIR = os.getenv('EDGE_USER_DATA_DIR', '')
+    EDGE_USER_DATA_DIR_HOT_SEARCH = os.getenv('EDGE_USER_DATA_DIR_HOT_SEARCH', '')
     EDGE_DRIVER_PATH = os.getenv('EDGE_DRIVER_PATH', r'D:\edgedriver\msedgedriver.exe')
     WEIBO_HOT_URL = os.getenv('WEIBO_HOT_URL', 'https://s.weibo.com/top/summary?cate=socialevent')
     CRAWL_MAX_SCROLLS = int(os.getenv('CRAWL_MAX_SCROLLS', 50))
